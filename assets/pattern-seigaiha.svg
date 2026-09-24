@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="24" viewBox="0 0 48 24">
+  <path d="M 0 -12 A 24 24 0 0 1 48 -12" fill="#2c5548"/>
+  <path d="M 0 -12 A 24 24 0 0 1 48 -12" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1.5"/>
+  <path d="M 6 -12 A 18 18 0 0 1 42 -12" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1.5"/>
+  <path d="M 12 -12 A 12 12 0 0 1 36 -12" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1.5"/>
+  <path d="M 18 -12 A 6 6 0 0 1 30 -12" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1.5"/>
+  <path d="M -24 0 A 24 24 0 0 1 24 0" fill="#2c5548"/>
+  <path d="M -24 0 A 24 24 0 0 1 24 0" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1.5"/>
+  <path d="M -18 0 A 18 18 0 0 1 18 0" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1.5"/>
+  <path d="M -12 0 A 12 12 0 0 1 12 0" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1.5"/>
+  <path d="M -6 0 A 6 6 0 0 1 6 0" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1.5"/>
+  <path d="M 24 0 A 24 24 0 0 1 72 0" fill="#2c5548"/>
+  <path d="M 24 0 A 24 24 0 0 1 72 0" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1.5"/>
+  <path d="M 30 0 A 18 18 0 0 1 66 0" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1.5"/>
+  <path d="M 36 0 A 12 12 0 0 1 60 0" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1.5"/>
+  <path d="M 42 0 A 6 6 0 0 1 54 0" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1.5"/>
+  <path d="M 0 12 A 24 24 0 0 1 48 12" fill="#2c5548"/>
+  <path d="M 0 12 A 24 24 0 0 1 48 12" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1.5"/>
+  <path d="M 6 12 A 18 18 0 0 1 42 12" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1.5"/>
+  <path d="M 12 12 A 12 12 0 0 1 36 12" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1.5"/>
+  <path d="M 18 12 A 6 6 0 0 1 30 12" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1.5"/>
+  <path d="M -24 24 A 24 24 0 0 1 24 24" fill="#2c5548"/>
+  <path d="M -24 24 A 24 24 0 0 1 24 24" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1.5"/>
+  <path d="M -18 24 A 18 18 0 0 1 18 24" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1.5"/>
+  <path d="M -12 24 A 12 12 0 0 1 12 24" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1.5"/>
+  <path d="M -6 24 A 6 6 0 0 1 6 24" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1.5"/>
+  <path d="M 24 24 A 24 24 0 0 1 72 24" fill="#2c5548"/>
+  <path d="M 24 24 A 24 24 0 0 1 72 24" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1.5"/>
+  <path d="M 30 24 A 18 18 0 0 1 66 24" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1.5"/>
+  <path d="M 36 24 A 12 12 0 0 1 60 24" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1.5"/>
+  <path d="M 42 24 A 6 6 0 0 1 54 24" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1.5"/>
+</svg>
