@@ -498,6 +498,13 @@ ol {
   margin-top: 28px;
 }
 
+.price-page .price-cta {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 /* ============ access ============ */
 .access-grid {
   display: grid;
