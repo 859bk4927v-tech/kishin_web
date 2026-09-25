@@ -3,36 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>施術内容｜よもん　はりきゅう治療院</title>
-  <meta name="description" content="よもん　はりきゅう治療院の施術内容をご紹介します。お悩みや体の状態を伺い、鍼・灸・経絡ケアを組み合わせた施術をご案内します。" />
+  <title data-app-ja="pageMeta.treatmentTitle"></title>
+  <meta name="description" data-app-ja-attr="content:pageMeta.treatmentDescription" content="" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Shippori+Mincho:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="../../css/style.css" />
 </head>
 <body>
-  <a class="skip-link" href="#main">本文へスキップ</a>
+  <a class="skip-link" href="#main" data-app-ja="actions.skipToContent"></a>
 
-  <header class="site-header" id="siteHeader">
-    <div class="container header-inner">
-      <a class="brand" href="index.html" aria-label="よもん　はりきゅう治療院 ホームへ">
-        <span class="brand-name">よもん　はりきゅう治療院</span>
-        <span class="brand-sub">KISHIN</span>
-      </a>
-      <nav class="global-nav" id="globalNav" aria-label="メインメニュー">
-        <ul>
-          <li><a href="index.html">ホーム</a></li>
-          <li><a href="price.html">料金</a></li>
-          <li><a href="treatment.html" class="is-active" aria-current="page">施術内容</a></li>
-          <li><a href="reservation.html">予約</a></li>
-        </ul>
-      </nav>
-      <a class="btn btn-primary nav-cta" href="reservation.html">予約する</a>
-      <button class="nav-toggle" id="navToggle" type="button" aria-expanded="false" aria-controls="globalNav" aria-label="メニューを開く">
-        <span></span><span></span><span></span>
-      </button>
-    </div>
-  </header>
+  <site-header active-page="treatment"></site-header>
 
   <main id="main">
     <section class="hero" aria-labelledby="treatment-title">
@@ -113,45 +94,19 @@
         </div>
         <p class="price-note">各メニューの所要時間と料金は、料金ページをご確認ください。施術内容について迷う場合は、ご予約前のお問い合わせも承ります。</p>
         <div class="price-cta">
-          <a class="btn btn-primary" href="price.html">料金を見る</a>
+          <a class="btn btn-primary" href="price_page.html">料金を見る</a>
           <a class="btn btn-primary" href="mailto:yomon.harikyu@gmail.com">メールで問い合わせる</a>
         </div>
       </div>
     </section>
   </main>
 
-  <footer class="site-footer">
-    <div class="container">
-      <div class="footer-grid">
-        <div>
-          <a class="brand" href="index.html" aria-label="よもん　はりきゅう治療院 ホームへ">
-            <span class="brand-name">よもん　はりきゅう治療院</span>
-            <span class="brand-sub">KISHIN</span>
-          </a>
-          <p class="footer-tagline">心と体が、すっきり軽くなる毎日</p>
-        </div>
-        <div>
-          <h2 class="footer-title">メニュー</h2>
-          <nav class="footer-nav" aria-label="フッターメニュー">
-            <a href="index.html">ホーム</a>
-            <a href="price.html">料金</a>
-            <a href="treatment.html" aria-current="page">施術内容</a>
-            <a href="reservation.html">予約</a>
-          </nav>
-        </div>
-        <div>
-          <h2 class="footer-title">CONTACT</h2>
-          <p class="footer-contact">
-            院長：佐藤 聖真（サトウ キシン）<br />
-            電話：<a href="tel:07085738131">070-8573-8131</a><br />
-            メール：<a href="mailto:yomon.harikyu@gmail.com">yomon.harikyu@gmail.com</a>
-          </p>
-        </div>
-      </div>
-      <p class="footer-copy">© <span id="year">2026</span> Yomon Harikyu. All rights reserved.</p>
-    </div>
-  </footer>
+  <site-footer active-page="treatment"></site-footer>
 
-  <script src="js/main.js"></script>
+  <script src="../../js/app_ja.js"></script>
+  <script src="../../js/component/shared_component.js"></script>
+  <script src="../../js/component/header_component.js"></script>
+  <script src="../../js/component/footer_component.js"></script>
+  <script src="../../js/main.js"></script>
 </body>
 </html>

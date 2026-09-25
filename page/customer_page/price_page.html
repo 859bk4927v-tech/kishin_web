@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title data-app-ja="pageMeta.priceTitle"></title>
+  <meta name="description" data-app-ja-attr="content:pageMeta.priceDescription" content="" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Shippori+Mincho:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../css/style.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main" data-app-ja="actions.skipToContent"></a>
+
+  <site-header active-page="price"></site-header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="price-title">
+      <div class="container">
+        <p class="hero-eyebrow">Price List</p>
+        <h1 id="price-title">施術料金</h1>
+        <p class="hero-lead">お一人ずつのお悩みや体の状態を伺い、施術内容をご案内します。料金について気になることがあれば、ご予約前にお気軽にお問い合わせください。</p>
+      </div>
+    </section>
+
+    <section class="section price price-page" aria-labelledby="price-list-title">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow">Menu</p>
+          <h2 class="section-title" id="price-list-title">料金表</h2>
+        </div>
+        <div class="price-table" aria-label="施術料金（税込）">
+          <div class="price-row">
+            <span class="name" data-app-ja="menus.first"></span>
+            <span class="amount" data-app-ja="prices.first"></span>
+          </div>
+          <div class="price-row">
+            <span class="name" data-app-ja="menus.acupuncture"></span>
+            <span class="amount" data-app-ja="prices.acupuncture"></span>
+          </div>
+          <div class="price-row">
+            <span class="name" data-app-ja="menus.acupunctureMoxa"></span>
+            <span class="amount" data-app-ja="prices.acupunctureMoxa"></span>
+          </div>
+          <div class="price-row">
+            <span class="name" data-app-ja="menus.meridian"></span>
+            <span class="amount" data-app-ja="prices.meridian"></span>
+          </div>
+        </div>
+        <p class="price-note">表示価格はすべて税込です。</p>
+        <div class="price-cta">
+          <a class="btn btn-primary" href="reservation_page.html">予約ページへ進む</a>
+          <a class="btn btn-primary" href="mailto:yomon.harikyu@gmail.com">メールで問い合わせる</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <site-footer active-page="price"></site-footer>
+
+  <script src="../../js/app_ja.js"></script>
+  <script src="../../js/component/shared_component.js"></script>
+  <script src="../../js/component/header_component.js"></script>
+  <script src="../../js/component/footer_component.js"></script>
+  <script src="../../js/main.js"></script>
+</body>
+</html>

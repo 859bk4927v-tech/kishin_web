@@ -1,28 +1,27 @@
-//  мобильなブラウザ向けメニュー
-const navToggle = document.getElementById("navToggle");
-const globalNav = document.getElementById("globalNav");
+// Coordinates behavior shared by all pages.
+class SiteApplication {
+  constructor(documentRoot = document) {
+    this.document = documentRoot;
+    this.header = this.document.getElementById("siteHeader");
+    this.year = this.document.getElementById("year");
+  }
 
-navToggle.addEventListener("click", () => {
-  const isOpen = globalNav.classList.toggle("is-open");
-  navToggle.classList.toggle("is-open", isOpen);
-  navToggle.setAttribute("aria-expanded", String(isOpen));
-  navToggle.setAttribute("aria-label", isOpen ? "メニューを閉じる" : "メニューを開く");
-});
+  start() {
+    appJa.apply(this.document);
+    this.bindHeaderScroll();
+    this.updateCopyrightYear();
+  }
 
-globalNav.querySelectorAll("a").forEach((link) => {
-  link.addEventListener("click", () => {
-    globalNav.classList.remove("is-open");
-    navToggle.classList.remove("is-open");
-    navToggle.setAttribute("aria-expanded", "false");
-    navToggle.setAttribute("aria-label", "メニューを開く");
-  });
-});
+  bindHeaderScroll() {
+    if (!this.header) return;
+    const updateHeader = () => this.header.classList.toggle("is-scrolled", window.scrollY > 8);
+    window.addEventListener("scroll", updateHeader, { passive: true });
+    updateHeader();
+  }
 
-// ヘッダーに影をつけた閉じる（スクロール時）
-const header = document.getElementById("siteHeader");
-const onScroll = () => header.classList.toggle("is-scrolled", window.scrollY > 8);
-window.addEventListener("scroll", onScroll, { passive: true });
-onScroll();
+  updateCopyrightYear() {
+    if (this.year) this.year.textContent = new Date().getFullYear();
+  }
+}
 
-// フッターの西暦
-document.getElementById("year").textContent = new Date().getFullYear();
+new SiteApplication().start();

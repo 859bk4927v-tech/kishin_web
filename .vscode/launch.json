@@ -1,16 +1,29 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-        
-        {
-            "type": "chrome",
-            "request": "launch",
-            "name": "Launch Chrome against localhost",
-            "url": "http://localhost:8080",
-            "webRoot": "${workspaceFolder}"
-        }
-    ]
+  // Start the local booking server, then open the homepage in Chrome.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Kishin: サーバーを起動してChromeで開く",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/server.py",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "env": {
+        "PORT": "8001"
+      },
+      "serverReadyAction": {
+        "pattern": "Local site and booking API: (https?://\\S+)",
+        "uriFormat": "%s/page/customer_page/home_page.html",
+        "action": "debugWithChrome"
+      }
+    },
+    {
+      "name": "Kishin: 料金ページをChromeで開く（サーバー起動済み）",
+      "type": "pwa-chrome",
+      "request": "launch",
+      "url": "http://localhost:8001/page/customer_page/price_page.html",
+      "webRoot": "${workspaceFolder}"
+    }
+  ]
 }

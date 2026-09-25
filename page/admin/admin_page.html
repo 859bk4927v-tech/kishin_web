@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title data-app-ja="pageMeta.adminTitle"></title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Shippori+Mincho:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../css/style.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main" data-app-ja="actions.skipToContent"></a>
+  <site-header active-page="admin"></site-header>
+  <main id="main">
+    <section class="hero" aria-labelledby="admin-title">
+      <div class="container"><p class="hero-eyebrow">Administrator</p><h1 id="admin-title">予約管理</h1><p class="hero-lead">予約情報はログイン後に表示されます。このページのURLを知っているだけでは、予約情報を見られません。</p></div>
+    </section>
+    <section class="section booking-section">
+      <div class="container admin-container">
+        <div id="adminNotice" class="booking-notice" role="status" aria-live="polite" hidden></div>
+        <form id="adminLogin" class="admin-login">
+          <label for="adminToken" data-app-ja="form.adminLoginLabel"></label>
+          <input id="adminToken" type="password" autocomplete="current-password" required />
+          <button class="btn btn-primary" type="submit" data-app-ja="form.adminSubmit"></button>
+          <small data-app-ja="form.adminTokenHelp"></small>
+        </form>
+
+        <div id="adminDashboard" hidden>
+          <div class="admin-toolbar">
+            <div class="form-field"><label for="adminDate" data-app-ja="form.adminDate"></label><input id="adminDate" type="date" /></div>
+            <button class="btn btn-primary" id="adminRefresh" type="button" data-app-ja="form.refresh"></button>
+            <button class="btn btn-outline" id="adminLogout" type="button" data-app-ja="form.logout"></button>
+          </div>
+          <div id="bookingList" class="booking-list" aria-live="polite"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <site-footer active-page="admin"></site-footer>
+  <script src="../../js/app_ja.js"></script>
+  <script src="../../js/component/shared_component.js"></script>
+  <script src="../../js/component/header_component.js"></script>
+  <script src="../../js/component/footer_component.js"></script>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/admin_page.js"></script>
+</body>
+</html>

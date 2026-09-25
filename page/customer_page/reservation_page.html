@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title data-app-ja="pageMeta.reservationTitle"></title>
+  <meta name="description" data-app-ja-attr="content:pageMeta.reservationDescription" content="" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Shippori+Mincho:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../css/style.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main" data-app-ja="actions.skipToContent"></a>
+
+  <site-header active-page="reservation"></site-header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="reservation-title">
+      <div class="container">
+        <p class="hero-eyebrow">Reservation</p>
+        <h1 id="reservation-title">Web予約</h1>
+        <p class="hero-lead">メニューとご希望の日時を選び、お客様情報を入力してください。予約は送信後に確定します。日曜日は休院日です。</p>
+      </div>
+    </section>
+
+    <section class="section booking-section" aria-labelledby="booking-form-title">
+      <div class="container booking-container">
+        <div class="section-head">
+          <p class="eyebrow">Book a Visit</p>
+          <h2 class="section-title" id="booking-form-title">ご予約内容</h2>
+        </div>
+
+        <div id="bookingNotice" class="booking-notice" role="status" aria-live="polite" hidden></div>
+
+        <form id="bookingForm" class="booking-form">
+          <div class="form-field">
+            <label for="menu"><span data-app-ja="form.menuLabel"></span> <span class="required" data-app-ja="form.required"></span></label>
+            <select id="menu" name="menu" required>
+              <option value="" data-app-ja="form.chooseMenu"></option>
+              <option value="first"></option>
+              <option value="acupuncture"></option>
+              <option value="acupuncture_moxa"></option>
+              <option value="meridian"></option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label for="bookingDate"><span data-app-ja="form.dateLabel"></span> <span class="required" data-app-ja="form.required"></span></label>
+            <input id="bookingDate" name="date" type="date" required />
+            <small id="dateHelp" class="field-help" data-app-ja="form.dateHelp"></small>
+          </div>
+
+          <fieldset class="form-field slot-field">
+            <legend><span data-app-ja="form.timeLabel"></span> <span class="required" data-app-ja="form.required"></span></legend>
+            <p id="slotMessage" class="field-help" data-app-ja="booking.chooseMenuAndDate"></p>
+            <div id="slotList" class="slot-list" role="radiogroup" aria-label="予約時間" data-app-ja-attr="aria-label:form.timeLabel"></div>
+            <input id="bookingTime" name="time" type="hidden" required />
+          </fieldset>
+
+          <div class="form-divider" aria-hidden="true"></div>
+
+          <div class="form-field">
+            <label for="customerName"><span data-app-ja="form.nameLabel"></span> <span class="required" data-app-ja="form.required"></span></label>
+            <input id="customerName" name="name" type="text" autocomplete="name" maxlength="80" required />
+          </div>
+          <div class="form-field">
+            <label for="customerPhone"><span data-app-ja="form.phoneLabel"></span> <span class="required" data-app-ja="form.required"></span></label>
+            <input id="customerPhone" name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="30" placeholder="例：070-1234-5678" data-app-ja-attr="placeholder:form.phonePlaceholder" required />
+          </div>
+          <div class="form-field">
+            <label for="customerEmail"><span data-app-ja="form.emailLabel"></span> <span class="optional" data-app-ja="form.optional"></span></label>
+            <input id="customerEmail" name="email" type="email" autocomplete="email" maxlength="254" />
+          </div>
+
+          <div class="privacy-note">
+            <p data-app-ja="form.privacyNotice"></p>
+          </div>
+
+          <label class="honeypot" aria-hidden="true"><span data-app-ja="form.honeypot"></span><input name="website" type="text" tabindex="-1" autocomplete="off" /></label>
+          <button class="btn btn-primary btn-lg booking-submit" id="bookingSubmit" type="submit"></button>
+        </form>
+
+        <p class="booking-contact"><span data-app-ja="form.bookingContact"></span> <a href="tel:07085738131" data-app-ja="phone" data-app-ja-attr="href:phoneLink"></a> <span data-app-ja="form.contactOr"></span> <a href="mailto:yomon.harikyu@gmail.com" data-app-ja="form.emailLink" data-app-ja-attr="href:email"></a>でお問い合わせください。</p>
+        <p class="booking-admin-link"><a href="../admin/admin_page.html">院長用 予約管理</a></p>
+      </div>
+    </section>
+  </main>
+
+  <site-footer active-page="reservation"></site-footer>
+
+  <script src="../../js/app_ja.js"></script>
+  <script src="../../js/component/shared_component.js"></script>
+  <script src="../../js/component/header_component.js"></script>
+  <script src="../../js/component/footer_component.js"></script>
+  <script src="../../js/main.js"></script>
+  <script src="../../js/reservation_page.js"></script>
+</body>
+</html>

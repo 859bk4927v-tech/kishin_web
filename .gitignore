@@ -2,3 +2,7 @@
 Thumbs.db
 .vscode/*
 !.vscode/launch.json
+.env
+data/
+__pycache__/
+*.py[cod]
