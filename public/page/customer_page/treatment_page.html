@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title data-app-ja="pageMeta.treatmentTitle"></title>
+  <meta name="description" data-app-ja-attr="content:pageMeta.treatmentDescription" content="" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&amp;display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../css/style.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main" data-app-ja="actions.skipToContent"></a>
+
+  <site-header active-page="treatment"></site-header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="treatment-title">
+      <div class="container">
+        <p class="hero-eyebrow" data-app-ja="treatmentPage.heroEyebrow"></p>
+        <h1 id="treatment-title" data-app-ja="treatmentPage.title"></h1>
+        <p class="hero-lead" data-app-ja="treatmentPage.lead"></p>
+      </div>
+    </section>
+
+    <section class="section symptom" aria-labelledby="menu-title">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow" data-app-ja="treatmentPage.menuEyebrow"></p>
+          <h2 class="section-title" id="menu-title" data-app-ja="treatmentPage.menuTitle"></h2>
+        </div>
+        <div class="symptom-grid">
+          <article class="symptom-card">
+            <span class="icon" aria-hidden="true"></span>
+            <h3 data-app-ja="treatmentPage.menus.acupunctureTitle"></h3>
+            <p data-app-ja="treatmentPage.menus.acupunctureDescription"></p>
+          </article>
+          <article class="symptom-card">
+            <span class="icon" aria-hidden="true"></span>
+            <h3 data-app-ja="treatmentPage.menus.moxaTitle"></h3>
+            <p data-app-ja="treatmentPage.menus.moxaDescription"></p>
+          </article>
+          <article class="symptom-card">
+            <span class="icon" aria-hidden="true"></span>
+            <h3 data-app-ja="treatmentPage.menus.combinationTitle"></h3>
+            <p data-app-ja="treatmentPage.menus.combinationDescription"></p>
+          </article>
+          <article class="symptom-card">
+            <span class="icon" aria-hidden="true"></span>
+            <h3 data-app-ja="treatmentPage.menus.meridianTitle"></h3>
+            <p data-app-ja="treatmentPage.menus.meridianDescription"></p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section flow" aria-labelledby="visit-flow-title">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow" data-app-ja="treatmentPage.visitEyebrow"></p>
+          <h2 class="section-title" id="visit-flow-title" data-app-ja="treatmentPage.visitTitle"></h2>
+        </div>
+        <div class="flow-grid">
+          <article class="flow-step">
+            <p class="step-no" data-app-ja="treatmentPage.visitSteps.0.0"></p>
+            <h3 data-app-ja="treatmentPage.visitSteps.0.1"></h3>
+            <p data-app-ja="treatmentPage.visitSteps.0.2"></p>
+          </article>
+          <article class="flow-step">
+            <p class="step-no" data-app-ja="treatmentPage.visitSteps.1.0"></p>
+            <h3 data-app-ja="treatmentPage.visitSteps.1.1"></h3>
+            <p data-app-ja="treatmentPage.visitSteps.1.2"></p>
+          </article>
+          <article class="flow-step">
+            <p class="step-no" data-app-ja="treatmentPage.visitSteps.2.0"></p>
+            <h3 data-app-ja="treatmentPage.visitSteps.2.1"></h3>
+            <p data-app-ja="treatmentPage.visitSteps.2.2"></p>
+          </article>
+          <article class="flow-step">
+            <p class="step-no" data-app-ja="treatmentPage.visitSteps.3.0"></p>
+            <h3 data-app-ja="treatmentPage.visitSteps.3.1"></h3>
+            <p data-app-ja="treatmentPage.visitSteps.3.2"></p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section price" aria-labelledby="guide-title">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow" data-app-ja="treatmentPage.infoEyebrow"></p>
+          <h2 class="section-title" id="guide-title" data-app-ja="treatmentPage.infoTitle"></h2>
+        </div>
+        <p class="price-note" data-app-ja="treatmentPage.guideNote"></p>
+        <div class="price-cta">
+          <a class="btn btn-primary" href="price_page.html" data-app-ja="treatmentPage.priceLink"></a>
+          <a class="btn btn-primary" href="" data-app-ja="treatmentPage.contactEmailLink" data-app-ja-attr="href:email"></a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <site-footer active-page="treatment"></site-footer>
+
+  <script src="../../js/app_ja.js"></script>
+  <script src="../../js/component/shared_component.js"></script>
+  <script src="../../js/component/header_component.js"></script>
+  <script src="../../js/component/footer_component.js"></script>
+  <script src="../../js/main.js"></script>
+</body>
+</html>

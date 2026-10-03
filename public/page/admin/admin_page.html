@@ -7,10 +7,10 @@
   <title data-app-ja="pageMeta.adminTitle"></title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Shippori+Mincho:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&amp;display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="../../css/style.css" />
 </head>
-<body>
+<body class="admin-page">
   <a class="skip-link" href="#main" data-app-ja="actions.skipToContent"></a>
   <site-header active-page="admin"></site-header>
   <main id="main">
@@ -22,7 +22,7 @@
         <div id="adminNotice" class="booking-notice" role="status" aria-live="polite" hidden></div>
         <form id="adminLogin" class="admin-login">
           <label for="adminToken" data-app-ja="form.adminLoginLabel"></label>
-          <input id="adminToken" type="password" autocomplete="current-password" required />
+          <input id="adminToken" type="password" autocomplete="off" required />
           <button class="btn btn-primary" type="submit" data-app-ja="form.adminSubmit"></button>
           <small data-app-ja="form.adminTokenHelp"></small>
         </form>
@@ -33,7 +33,24 @@
             <button class="btn btn-primary" id="adminRefresh" type="button" data-app-ja="form.refresh"></button>
             <button class="btn btn-outline" id="adminLogout" type="button" data-app-ja="form.logout"></button>
           </div>
-          <div id="bookingList" class="booking-list" aria-live="polite"></div>
+          <div class="calendar-navigation">
+            <button type="button" id="adminPrevious" class="btn btn-outline">前の一週間</button>
+            <p id="adminWeekLabel" class="calendar-range" aria-live="polite"></p>
+            <button type="button" id="adminNext" class="btn btn-outline">次の一週間</button>
+          </div>
+          <p id="adminCalendarHelp" class="field-help">予約済みの枠をタップすると、予約情報を確認できます。予約は施術終了までの時間に表示されます。</p>
+          <p class="calendar-scroll-hint">カレンダーを左右にスクロールすると、ほかの日付を確認できます。</p>
+            <p class="calendar-legend">予約済み：緑色の枠　空き：—　休院：休</p>
+          <p id="adminCalendarStatus" role="status" aria-live="polite"></p>
+          <div id="adminCalendar" class="calendar-scroll" role="region" aria-label="院長用週間予約カレンダー" aria-describedby="adminCalendarHelp" tabindex="0"></div>
+          <details id="cancelledBookings" class="cancelled-bookings" hidden>
+            <summary>この週のキャンセル済み予約</summary>
+            <div id="cancelledBookingList" class="booking-list"></div>
+          </details>
+          <dialog id="bookingDialog" class="booking-dialog" aria-labelledby="booking-detail-title">
+            <button type="button" id="bookingDialogClose" class="btn btn-outline dialog-close">閉じる</button>
+            <div id="bookingList" class="booking-list"></div>
+          </dialog>
         </div>
       </div>
     </section>
@@ -44,6 +61,7 @@
   <script src="../../js/component/header_component.js"></script>
   <script src="../../js/component/footer_component.js"></script>
   <script src="../../js/main.js"></script>
+  <script src="../../js/weekly_calendar.js"></script>
   <script src="../../js/admin_page.js"></script>
 </body>
 </html>

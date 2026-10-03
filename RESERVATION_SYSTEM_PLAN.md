@@ -12,11 +12,11 @@
 
 ## 現在わかっていること
 
-- Webサイトは `/Users/takaesu/Projects/webApp/kishin` にある静的HTML/CSS/JavaScriptのサイト。
-- `page/customer_page/reservation_page.html` とローカル用予約APIは試作済み。本番利用に必要な公開サーバーへの移行はまだ。
+- Webサイトは `/Users/takaesu/Projects/webApp/kishin` にある。静的HTML/CSS/JavaScriptは `public/`、Cloudflare Workerは `src/` に置く。
+- `public/page/customer_page/reservation_page.html` とローカル用Cloudflare Worker APIは準備済み。Cloudflareへのデプロイはまだ。
 - 公開済みの料金メニューは、初回30分、鍼30分、鍼＋灸30分、経絡ケア60分。
 - 営業時間は10:00〜19:00、最終受付は18:00、休院日は日曜日とサイトに記載されている。
-- 予約データを保存するサーバーやデータベースは、現在のサイトには見当たらない。
+- 予約データはCloudflare D1に保存する構成を準備済み。
 
 ## 院長から確認した運用ルール
 
@@ -24,17 +24,17 @@
 - 1つの時間帯は1件まで。同じ時間に重なる予約は受け付けない。
 - 予約は60日先まで、30分単位で受け付ける。
 - 院のLINE公式アカウントはある。Messaging APIの有効化状況・通知先IDは未確認。
-- 公開先・ドメインは未確認。
+- Cloudflare Workers＋D1を公開先に決定。独自ドメインは未設定。
 - 暫定の実装では氏名と電話番号を必須、メールアドレスを任意にする。症状や病歴はフォームで収集しない。
 - 現行サイトに書かれている営業時間10:00〜19:00、最終受付18:00、日曜休院を使う。祝日・臨時休院のルールは未確認。
 
 ## 実装状況
 
-- ローカル試作として、予約画面、予約API、SQLite保存、院長用管理画面（一覧・日時変更・キャンセル）を追加した。
-- 予約の重複はサーバー側とデータベース書き込み時に再確認する。
+- 予約画面、JavaScript Worker API、D1スキーマ、院長用管理画面（一覧・日時変更・キャンセル）を用意した。
+- 予約の重複はWorker側とD1の原子的な書き込み時に再確認する。
 - LINE Messaging APIによる院長への通知処理を追加したが、認証情報が未設定のため現在は通知されない。
-- 予約データは開発中のMac内 `data/bookings.sqlite3` に保存する。本番DBへの移行・公開はまだ行っていない。
-- Python標準ライブラリの開発用HTTPサーバーを使う。これはインターネット公開用ではない。
+- 予約データはローカルではWranglerのD1（`.wrangler/state/`）、本番ではCloudflare D1に保存する。以前の `data/bookings.sqlite3` は自動移行しない。
+- Cloudflare Workers＋D1へJavaScriptで移行済み。ローカルではWranglerを使う。LINE Push通知はWorkersから送信する。
 - LINE Messaging APIのPush通知には、同一リクエストの安全な再試行用キーを付ける。LINEは再試行キーを24時間管理するため、期限後の自動再送はしない。[LINEの再試行仕様](https://developers.line.biz/en/docs/messaging-api/retrying-api-request/)
 
 ## 大事なLINEの前提
@@ -47,7 +47,7 @@ LINEから届くWebhookを受け取る機能を作る場合は、Webhook署名�
 
 ## 実装を始める前に決めること
 
-以下は現在のサイト情報だけでは確定できません。ローカルLLMは推測で決めず、作業開始時に確認してください。回答はこの表に追記してから実装します。
+以下のうち未決定の運用項目は、推測せず実装前に確認してください。回答はこの表に追記します。ホスティング先はCloudflare Workers＋D1に決定済みです。
 
 | 決めること | 選択・回答 |
 |---|---|
@@ -59,9 +59,9 @@ LINEから届くWebhookを受け取る機能を作る場合は、Webhook署名�
 | お客様から受け取る情報（氏名、電話、メールなど） | 未決定。必要最小限にする |
 | 予約は送信時点で確定か、院長の確認後に確定か | 送信時点で確定（院長回答） |
 | お客様への予約確認・変更・キャンセル連絡方法 | 画面で予約番号を表示。メール通知・顧客向け変更リンクは未実装 |
-| 院長が予約を確認・変更・キャンセルする方法 | 試作の `page/admin/admin_page.html` で管理用トークン認証（ローカルのみ） |
-| 現在のWebサイトを公開しているホスティング先・ドメイン | 未決定 |
-| サーバー・データベースの希望、月額費用の上限 | 未決定 |
+| 院長が予約を確認・変更・キャンセルする方法 | 試作の `public/page/admin/admin_page.html` で管理用トークン認証（ローカルのみ） |
+| 現在のWebサイトを公開しているホスティング先・ドメイン | Cloudflare Workers＋D1を採用。独自ドメインは未決定 |
+| サーバー・データベースの希望、月額費用の上限 | Cloudflare Workers＋D1。無料枠で試作 |
 | LINE公式アカウントはすでにあるか。Messaging APIを有効化できるか | 公式アカウントあり（院長回答）。Messaging APIの状態は未確認 |
 
 ## 推奨する仕組み
@@ -73,14 +73,14 @@ LINEから届くWebhookを受け取る機能を作る場合は、Webhook署名�
 ```text
 お客様のスマートフォン
   ↓ 空き枠確認・予約送信
-予約ページ（`page/customer_page/reservation_page.html`）
+予約ページ（`public/page/customer_page/reservation_page.html`）
   ↓ サーバーで入力確認・空き枠再確認
 予約API ──→ データベースに予約を保存
   ↓ 保存成功後に通知
 LINE Messaging API ──→ 院長のLINE
 ```
 
-ホスティング先、データベース、サーバー機能のサービスは、現在のサイト公開先を調べてから決めます。利用料、無料枠、個人情報の保存場所、既存ドメインとの接続方法を比べて決定してください。サービス契約や有料プランへの変更は、院長が選んでから行います。
+Cloudflare Workers＋D1を利用します。ローカルで動作を確認してから無料枠へデプロイし、本番予約開始前に無料枠の上限・復元期間を確認します。独自ドメイン取得費用は別途です。
 
 ## 作業手順
 
@@ -90,9 +90,9 @@ LINE Messaging API ──→ 院長のLINE
 - [ ] Webサイトの公開先、ドメイン、デプロイ手順を確認する。
 - [x] 予約運用ルールの未決定項目を院長に質問する。
 - [x] 上の「実装を始める前に決めること」を回答に合わせて更新する。
-- [ ] 利用するホスティング先とデータベースを、費用と既存環境に基づいて決める。
+- [x] Cloudflare Workers＋D1を採用する。
 
-**完了条件：** 営業時間、枠の作り方、同時予約数、確定方法、管理方法、公開先が明らかになっている。
+**完了条件：** 営業時間、枠の作り方、同時予約数、確定方法、管理方法、公開先が明らかになっている。Cloudflareデプロイ設定は準備済み。
 
 ### 2. LINE公式アカウントを通知できる状態にする
 
@@ -100,29 +100,29 @@ LINE Messaging API ──→ 院長のLINE
 - [ ] LINE Official Account ManagerからMessaging APIを有効にし、LINE Developers ConsoleにMessaging APIチャネルを用意する。
 - [ ] 院長本人がそのLINE公式アカウントを友だち追加する。
 - [ ] Messaging APIチャネルの設定から通知先となる院長のLINEユーザーIDを確認する。必要に応じ、院長が公式アカウントへメッセージを送った際のWebhookからユーザーIDを取得する。
-- [ ] Channel secretとChannel access tokenを発行し、サーバー側の環境変数として安全に保管する。
+- [ ] Channel secretとChannel access tokenを発行し、WorkersのSecretとして安全に保管する。
 - [ ] トークン類をHTML、JavaScript、Git管理下の設定ファイル、チャット、ログに貼らない。
 - [ ] LINEの料金・月間メッセージ数の最新条件を確認する。
 
 Messaging APIチャネルの作成手順：[LINE公式アカウントでMessaging APIを始める](https://developers.line.biz/en/docs/messaging-api/getting-started/)
 
-**完了条件：** 本番サーバーから、院長のLINEにテスト通知を1件送れる。失敗時にサーバーログで原因を調べられる。
+**完了条件：** 本番Workerから、院長のLINEにテスト通知を1件送れる。失敗時にサーバーログで原因を調べられる。
 
 ### 3. 予約ページと予約APIを作る
 
-- [x] `page/customer_page/reservation_page.html` を作成し、日付、空き時間、メニュー、お客様情報を入力できるようにする。
+- [x] `public/page/customer_page/reservation_page.html` を作成し、日付、空き時間、メニュー、お客様情報を入力できるようにする。
 - [x] 入力欄にラベル、必須項目、形式確認、エラー表示を追加する。
 - [x] 空き状況はサーバーから取得する。
 - [x] 予約送信時にサーバー側で入力を検証し、空き状況を再確認してから保存する。
-- [x] 同時送信時の二重予約をSQLiteの排他トランザクションと重なり確認で防ぐ。
+- [x] 同時送信時の二重予約をD1の原子的なINSERTと重なり確認で防ぐ。
 - [x] 予約番号を画面に表示し、LINE通知失敗時も予約を保存する。
 - [x] 予約送信の二重登録を冪等キーで防ぎ、LINE Push通知にはLINEの再試行キーを使う。
 
-実装ファイル：`page/customer_page/reservation_page.html`、`page/admin/admin_page.html`、`server.py`、`js/reservation_page.js`。ローカル起動手順は `RESERVATION_LOCAL_SETUP.md` を参照。
+実装ファイル：`public/page/customer_page/reservation_page.html`、`public/page/admin/admin_page.html`、`src/worker.js`、`public/js/reservation_page.js`。ローカル起動手順は `RESERVATION_LOCAL_SETUP.md` を参照。
 
 ### 4. 予約データと管理方法を作る
 
-- [x] 予約番号、開始・終了時刻、メニュー、氏名、連絡先、状態、作成日時をSQLiteに保存する。
+- [x] 予約番号、開始・終了時刻、メニュー、氏名、連絡先、状態、作成日時をD1に保存する。
 - [x] 「確定」「キャンセル」を区別する。
 - [x] 院長用管理画面で予約一覧、日時変更、キャンセルを行えるようにする。
 - [x] 管理用トークンで管理APIを保護する。
@@ -134,7 +134,7 @@ Messaging APIチャネルの作成手順：[LINE公式アカウントでMessagin
 
 - [x] 保存後にサーバーからMessaging APIのPush messageを送るコードを追加する。
 - [x] 通知に予約番号、日時、メニュー、氏名、電話番号を含める。
-- [x] Channel access tokenと通知先LINEユーザーIDはサーバー側環境変数から読む。
+- [x] Channel access tokenと通知先LINEユーザーIDはWorkersのSecretから読む。
 - [x] 予約と通知状態を別々に保存し、通知失敗で予約を消さない。
 - [x] 管理画面から通知を再送できるようにし、LINE再試行キーを使う。
 - [ ] Messaging APIを有効化し、秘密情報を設定して実際のLINE通知を確認する。
@@ -153,15 +153,23 @@ Messaging APIチャネルの作成手順：[LINE公式アカウントでMessagin
 - [ ] 未ログインの人が管理機能を使えない。
 - [ ] Channel secretやChannel access tokenがHTML、JavaScript、Git履歴、画面表示に含まれていない。
 
-自動テストやブラウザでの操作確認はまだ実施していない。ローカル起動後にこの一覧を確認してチェックする。
+Worker・D1への移行後の構文確認・ローカル起動・ブラウザ操作・予約APIの実動作確認はまだ。作業後にこの一覧で確認します。
 
 ### 7. 公開する
 
-- [ ] 本番用のLINE設定、データベース、サーバー環境変数を設定する。
+- [ ] 本番用のLINE SecretとD1を設定する。
 - [ ] HTTPSで予約ページとAPIを公開する。
 - [ ] 公開URLで予約、管理、通知を一通り確認する。
 - [ ] データベースのバックアップと、障害・通知失敗時の確認手順を記録する。
 - [ ] 公開後はテスト予約を削除またはキャンセルし、院長へ操作方法を引き継ぐ。
+
+## Cloudflare Workers＋D1の構成
+
+- サイトと静的ファイルは `public/` から配信する。
+- WorkerのAPIは `src/` に置き、D1 binding `BOOKING_DB` を利用する。
+- D1スキーマは `migrations/` のSQLで管理する。
+- 本番のトークンはWrangler Secrets、ローカルのトークンは `.dev.vars` に置き、Gitへ登録しない。
+- Web予約と将来追加するLINE予約Webhookは、共通の `BookingService` を通して予約枠を確保する。
 
 ## 予約データの設計メモ
 
@@ -183,7 +191,7 @@ Messaging APIチャネルの作成手順：[LINE公式アカウントでMessagin
 
 このファイルを渡すときは、次の指示も一緒に伝えてください。
 
-> `RESERVATION_SYSTEM_PLAN.md` を読んで、現在のリポジトリを確認してから作業してください。まず「実装を始める前に決めること」の未決定項目を列挙し、仕様が必要な箇所は推測せず質問してください。回答できる独立作業（現状確認、既存ページの整理、画面案の作成など）は先に進めてください。LINEやホスティングの秘密情報をソースコードやGitに保存しないでください。アカウント作成、有料契約、本番公開は、選択肢と費用を示して院長が決めてから進めてください。作業後は変更点、確認した項目、未完了事項をこの計画に反映してください。
+> `RESERVATION_SYSTEM_PLAN.md` を読んで、現在のリポジトリを確認してから作業してください。「実装を始める前に決めること」の未決定の運用項目を列挙し、仕様が必要な箇所は推測せず質問してください。回答できる独立作業（現状確認、既存ページの整理、画面案の作成など）は先に進めてください。LINEやホスティングの秘密情報をソースコードやGitに保存しないでください。アカウント作成、有料契約、本番公開は、選択肢と費用を示して院長が決めてから進めてください。作業後は変更点、確認した項目、未完了事項をこの計画に反映してください。
 
 ## 公式資料
 

@@ -49,6 +49,11 @@ class SiteHeader extends HTMLElement {
     this.toggle = this.querySelector("#navToggle");
     this.toggle.addEventListener("click", () => this.toggleMenu());
     this.nav.querySelectorAll("a").forEach((link) => link.addEventListener("click", () => this.closeMenu()));
+    document.addEventListener("pointerdown", (event) => {
+      if (this.toggle.getAttribute("aria-expanded") === "true" && !this.contains(event.target)) {
+        this.closeMenu();
+      }
+    });
   }
 
   toggleMenu() {

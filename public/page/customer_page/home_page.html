@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title data-app-ja="pageMeta.homeTitle"></title>
+  <meta name="description" data-app-ja-attr="content:pageMeta.homeDescription" content="" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%232c5548'/%3E%3Ctext x='32' y='43' font-size='30' text-anchor='middle' fill='%23ffffff' font-family='serif'%3E%E6%AD%A6%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&amp;display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../../css/style.css" />
+</head>
+<body class="home-page">
+  <a class="skip-link" href="#main" data-app-ja="actions.skipToContent"></a>
+
+  <site-header active-page="home"></site-header>
+
+  <main id="main">
+    <!-- ヒーロー -->
+    <section class="hero">
+      <div class="container home-hero-content">
+        <img class="home-hero-logo" src="../../assets/yomon_logo.svg" alt="よもん はりきゅう治療院のロゴ" width="1504" height="1046" />
+        <!-- <p class="hero-eyebrow" data-app-ja="shopName"></p> -->
+        <h1 data-app-ja="tagline"></h1>
+        <p class="hero-lead" data-app-ja="homePage.heroLead"></p>
+        <div class="hero-actions">
+          <a class="btn btn-gold btn-lg" href="reservation_page.html" data-app-ja="homePage.reserveLink"></a>
+          <a class="btn btn-ghost btn-lg" href="#price" data-app-ja="homePage.priceLink"></a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 症状 -->
+    <section class="section symptom" id="symptom">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow" data-app-ja="homePage.symptomEyebrow"></p>
+          <h2 class="section-title" data-app-ja="homePage.symptomTitle"></h2>
+          <p class="section-lead" data-app-ja="homePage.symptomLead"></p>
+        </div>
+        <div class="symptom-grid">
+          <a class="symptom-card symptom-link" href="reservation_page.html#symptom=neckShoulder" aria-labelledby="symptom-neckShoulder">
+            <div class="symptom-card-heading">
+              <span class="icon" aria-hidden="true"><svg class="shoulder-pain-icon" viewBox="0 0 320 340" focusable="false"><path class="shoulder-pain-rays" d="m51 34 17 25 10-7 11 39-29-22 5-6-14-29Zm-16 50 22 20 6-9 28 29-42-10 8-8-22-22Zm-18 16 14 14 8-7 44 33-65-19 10-6-11-15Z"/><circle class="shoulder-figure" cx="180" cy="65" r="60"/><path class="shoulder-figure" d="M108 127h137c10 0 16 9 16 20v172c0 12-6 19-18 19H123c-12 0-18-7-18-19l-5-169c0-14 2-23 8-23Z"/><path class="shoulder-figure" d="M98 127c-10-4-19 0-26 9l-55 68c-6 8-8 16-5 27l23 80c4 14 13 20 26 18 14-2 22-14 18-29l-14-64 44-48 3-41c0-9-5-17-14-20Z"/><path class="shoulder-figure" d="M115 128h131c27 0 39 28 24 48l-72 70c-8 7-17 10-24 7l-51-82c-9-14-12-33-8-43Z"/><path class="shoulder-seam" d="M124 129c26 20 52 44 77 73M260 194c-23 24-48 46-77 57M88 129c-10 11-11 25-2 39"/></svg></span>
+              <h3 id="symptom-neckShoulder" data-app-ja="homePage.symptoms.neckShoulderTitle"></h3>
+            </div>
+            <p data-app-ja="homePage.symptoms.neckShoulderDescription"></p>
+            <span class="symptom-link-label" data-app-ja="homePage.symptomDetailsLink"></span>
+          </a>
+          <a class="symptom-card symptom-link" href="reservation_page.html#symptom=backPain" aria-labelledby="symptom-backPain">
+            <div class="symptom-card-heading">
+              <span class="icon" aria-hidden="true"><svg class="back-pain-icon" viewBox="0 0 120 120" focusable="false"><circle class="back-figure" cx="37" cy="22" r="11"/><path class="back-figure" d="M47 32c7-2 14-1 21 3l9 29c2 7-2 12-8 14H57c-2-8-6-14-11-20l-7-10c-2-5 2-13 8-16Z"/><path class="back-figure" d="M46 34c-4-2-7 0-9 5l-8 17-9 11c-3 3-2 7 1 9 3 2 6 1 9-2l11-12 11-19c2-4 0-7-6-9ZM67 36l13 3c3 1 5 4 5 7v14c0 4-2 6-5 6s-5-2-5-6l-1-11-12-3 5-10Z"/><path class="back-figure" d="M56 69h17l-1 19 1 18c0 5-3 8-7 8s-7-3-7-8l-1-20-3 20c-1 5-4 8-8 8-4-1-6-4-6-9l4-25 11-11Z"/><path class="back-pain-rays" d="m89 57-8 9 5 2-4 10 15-12-6-3 8-6-10 0Zm8 20-7 8 5 2-3 9 14-11-6-3 5-6-8 1Z"/></svg></span>
+              <h3 id="symptom-backPain" data-app-ja="homePage.symptoms.backPainTitle"></h3>
+            </div>
+            <p data-app-ja="homePage.symptoms.backPainDescription"></p>
+            <span class="symptom-link-label" data-app-ja="homePage.symptomDetailsLink"></span>
+          </a>
+          <a class="symptom-card symptom-link" href="reservation_page.html#symptom=sleep" aria-labelledby="symptom-sleep">
+            <div class="symptom-card-heading">
+              <span class="icon" aria-hidden="true"><svg class="insomnia-icon" viewBox="0 0 120 120" focusable="false"><path class="night-shape" d="M70 8h43v38H70z"/><path class="night-mark" d="M91 10h2v34h-2zM104 15a10 10 0 1 1-9 17 9 9 0 0 0 9-17ZM79 17l1.4 3.5 3.6.3-2.8 2.3.9 3.5-3.1-1.9-3.1 1.9.9-3.5-2.8-2.3 3.6-.3L79 17Zm7-8 1.1 2.5 2.7.2-2.1 1.8.6 2.6-2.3-1.4-2.3 1.4.6-2.6-2.1-1.8 2.7-.2L86 9Z"/><path class="night-shape" d="M8 75h6v37H8zM104 91h7v21h-7zM14 86h88c6 0 9 4 9 9v7H14zM55 76c20-2 45 1 52 10H55z"/><circle class="night-shape" cx="42" cy="54" r="11"/><path class="night-shape" d="M36 66h9c8 0 14 6 14 14v10H31V76c0-6 2-10 5-10Z"/><path class="night-shape" d="M54 69c3-1 5 1 6 4l3 9c1 3-1 5-4 5l-12-4v-6l9 2-2-7c-1-1-1-2 0-3ZM59 68l-2-16c-.3-3 1-5 4-5 2-.3 4 1 4 4l3 22c.5 4-1 6-4 6-3 .4-5-2-5-5v-6Z"/><path class="restless-mark" d="M16 40c4-6 12-9 11-5-1 3-11 8-7 9 3 1 13-7 14-5 1 2-10 7-9 9 1 2 7-3 10-3"/></svg></span>
+              <h3 id="symptom-sleep" data-app-ja="homePage.symptoms.sleepTitle"></h3>
+            </div>
+            <p data-app-ja="homePage.symptoms.sleepDescription"></p>
+            <span class="symptom-link-label" data-app-ja="homePage.symptomDetailsLink"></span>
+          </a>
+          <a class="symptom-card symptom-link" href="reservation_page.html#symptom=cold" aria-labelledby="symptom-cold">
+            <div class="symptom-card-heading">
+              <span class="icon symptom-icon-wide" aria-hidden="true"><svg class="womens-health-icon" viewBox="0 0 120 100" focusable="false"><path class="thought-bubble" d="M60 4c10 0 18 8 18 18 0 9-5 15-13 17l-5 8-5-8c-8-2-13-8-13-17C42 12 50 4 60 4ZM25 29c10 0 18 8 18 18 0 7-4 13-9 16l7 5-11-3C18 68 7 59 7 47c0-10 8-18 18-18ZM95 29c10 0 18 8 18 18 0 12-11 21-23 18l-11 3 7-5c-5-3-9-9-9-16 0-10 8-18 18-18Z"/><path class="thought-symbol" d="M55 17c1-4 4-6 8-5 5 1 7 6 3 10l-5 5v2"/><circle class="thought-dot" cx="61" cy="34" r="1.8"/><path class="thought-symbol" d="M15 51c2-7 12-12 13-8 1 3-10 7-8 9 2 2 11-6 13-4 2 2-7 7-6 9m59-9c4-6 9-6 9-1 5-6 10-2 6 2 6-2 7 5 2 6 2 4-4 6-7 3-4 4-10 0-7-4-6 0-7-5-3-6Z"/><path class="womens-hair" d="M45 84c3-8 2-20 6-26 5-8 17-8 22 0 4 6 3 18 6 26-7 0-11-4-13-10H56c-2 6-6 10-11 10Z"/><path class="womens-body" d="M55 76v7c-8 2-13 6-15 13h40c-2-7-7-11-15-13v-7"/><path class="womens-face" d="M50 63c6-1 12-4 16-9 1 6 3 8 4 10 0 9-4 17-10 17s-10-8-10-18Z"/><path class="womens-sweat" d="M43 73c-4 4-5 7-3 9 2 2 5 1 5-2 0-2-1-4-2-7Z"/></svg></span>
+              <h3 id="symptom-cold" data-app-ja="homePage.symptoms.coldTitle"></h3>
+            </div>
+            <p data-app-ja="homePage.symptoms.coldDescription"></p>
+            <span class="symptom-link-label" data-app-ja="homePage.symptomDetailsLink"></span>
+          </a>
+          <a class="symptom-card symptom-link" href="reservation_page.html#symptom=digestion" aria-labelledby="symptom-digestion">
+            <div class="symptom-card-heading">
+              <span class="icon" aria-hidden="true"><svg class="stomach-icon" viewBox="0 0 120 120" focusable="false"><path class="stomach-pain" d="m27 12 12 16 6-5 7 22-17-13-5 6-3-26ZM12 42l20 8 4-7 15 18-21-7-4 8-14-20Z"/><path class="stomach-outline" d="M66 10h15l1 20c0 5 3 8 9 11 14 7 21 21 19 37-2 18-17 29-35 30-13 1-22-4-31-8-13-6-20-1-22 12H12c2-25 15-47 36-64l13-11c5-4 7-9 6-16l-1-11Z"/><path class="stomach-face" d="m58 66 8 5-8 5m24-10-8 5 8 5M61 89q9-7 19 0"/></svg></span>
+              <h3 id="symptom-digestion" data-app-ja="homePage.symptoms.digestionTitle"></h3>
+            </div>
+            <p data-app-ja="homePage.symptoms.digestionDescription"></p>
+            <span class="symptom-link-label" data-app-ja="homePage.symptomDetailsLink"></span>
+          </a>
+          <a class="symptom-card symptom-link" href="reservation_page.html#symptom=muscle" aria-labelledby="symptom-muscle">
+            <div class="symptom-card-heading">
+              <span class="icon" aria-hidden="true"><svg class="sports-injury-icon" viewBox="0 0 120 120" focusable="false"><g transform="translate(8 5) scale(.92)"><circle class="athlete-shape" cx="59" cy="24" r="9"/><path class="athlete-shape" d="M47 39c6-2 15-2 21 1l12 11c2 2 2 4 1 7l-4 13c-1 3-3 4-6 3-2-1-3-3-3-5l2-13-7-5-4 27-2 11-18 20c-2 3-5 3-7 1s-2-5 0-7l16-20 1-16-8 19-11 12c-2 2-5 3-7 1s-2-5-1-7l9-13 10-25-9 1-8 2c-3 .5-5-1-6-4 0-3 1-5 4-6l13-4 12-4Z"/><circle class="athlete-shape" cx="94" cy="91" r="9"/><path class="injury-bolt" d="m83 65-15 16 6 3-8 12 21-17-7-3 10-14-7 3Zm-15 29 5 8 4-4 8 13-14-8-3 5-7-14 7 0Z"/></g></svg></span>
+              <h3 id="symptom-muscle" data-app-ja="homePage.symptoms.muscleTitle"></h3>
+            </div>
+            <p data-app-ja="homePage.symptoms.muscleDescription"></p>
+            <span class="symptom-link-label" data-app-ja="homePage.symptomDetailsLink"></span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 料金 -->
+    <section class="section price" id="price">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow" data-app-ja="homePage.priceEyebrow"></p>
+          <h2 class="section-title" data-app-ja="homePage.priceTitle"></h2>
+        </div>
+        <div class="price-table">
+          <div class="price-row">
+            <span class="name" data-app-ja="menus.first"></span>
+            <span class="amount" data-app-ja="prices.first"></span>
+          </div>
+          <div class="price-row">
+            <span class="name" data-app-ja="menus.acupuncture"></span>
+            <span class="amount" data-app-ja="prices.acupuncture"></span>
+          </div>
+          <div class="price-row">
+            <span class="name" data-app-ja="menus.acupunctureMoxa"></span>
+            <span class="amount" data-app-ja="prices.acupunctureMoxa"></span>
+          </div>
+          <div class="price-row">
+            <span class="name" data-app-ja="menus.meridian"></span>
+            <span class="amount" data-app-ja="prices.meridian"></span>
+          </div>
+        </div>
+        <p class="price-note" data-app-ja="homePage.priceTaxNote"></p>
+        <div class="price-cta">
+          <a class="btn btn-primary" href="price_page.html" data-app-ja="homePage.priceDetailsLink"></a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 流れ -->
+    <section class="section flow" id="flow">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow" data-app-ja="homePage.flowEyebrow"></p>
+          <h2 class="section-title" data-app-ja="homePage.flowTitle"></h2>
+        </div>
+        <div class="flow-grid">
+          <div class="flow-step">
+            <p class="step-no" data-app-ja="homePage.flowSteps.0.0"></p>
+            <h3 data-app-ja="homePage.flowSteps.0.1"></h3>
+            <p data-app-ja="homePage.flowSteps.0.2"></p>
+          </div>
+          <div class="flow-step">
+            <p class="step-no" data-app-ja="homePage.flowSteps.1.0"></p>
+            <h3 data-app-ja="homePage.flowSteps.1.1"></h3>
+            <p data-app-ja="homePage.flowSteps.1.2"></p>
+          </div>
+          <div class="flow-step">
+            <p class="step-no" data-app-ja="homePage.flowSteps.2.0"></p>
+            <h3 data-app-ja="homePage.flowSteps.2.1"></h3>
+            <p data-app-ja="homePage.flowSteps.2.2"></p>
+          </div>
+          <div class="flow-step">
+            <p class="step-no" data-app-ja="homePage.flowSteps.3.0"></p>
+            <h3 data-app-ja="homePage.flowSteps.3.1"></h3>
+            <p data-app-ja="homePage.flowSteps.3.2"></p>
+          </div>
+        </div>
+        <div class="flow-cta booking-invitation">
+          <p class="eyebrow" data-app-ja="homePage.bookingEyebrow"></p>
+          <h3 data-app-ja="homePage.bookingTitle"></h3>
+          <p class="booking-invitation-copy" data-app-ja="homePage.bookingLead"></p>
+          <a class="btn btn-primary btn-lg" href="reservation_page.html" data-app-ja="homePage.reserveLink"></a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ごあいさつ -->
+    <section class="section intro" id="greeting">
+      <div class="container intro-grid">
+        <div class="intro-text">
+          <p class="eyebrow" data-app-ja="homePage.greetingEyebrow"></p>
+          <h2 class="section-title"><span data-app-ja="homePage.greetingTitleLead"></span><br /><span data-app-ja="shopName"></span><span data-app-ja="homePage.greetingTitleSuffix"></span></h2>
+          <p data-app-ja="homePage.greetingBody"></p>
+          <p data-app-ja="homePage.greetingClosing"></p>
+          <p class="intro-sign"><span data-app-ja="directorRole"></span> <span class="sign-name" data-app-ja="directorName"></span></p>
+        </div>
+        <aside class="intro-features" aria-labelledby="features-title">
+          <p class="eyebrow" data-app-ja="homePage.featuresEyebrow"></p>
+          <h3 id="features-title" data-app-ja="homePage.featuresTitle"></h3>
+          <ol class="feature-list">
+            <li>
+              <span class="feature-number" aria-hidden="true">01</span>
+              <div>
+                <h4 data-app-ja="homePage.features.0.title"></h4>
+                <p data-app-ja="homePage.features.0.description"></p>
+              </div>
+            </li>
+            <li>
+              <span class="feature-number" aria-hidden="true">02</span>
+              <div>
+                <h4 data-app-ja="homePage.features.1.title"></h4>
+                <p data-app-ja="homePage.features.1.description"></p>
+              </div>
+            </li>
+            <li>
+              <span class="feature-number" aria-hidden="true">03</span>
+              <div>
+                <h4 data-app-ja="homePage.features.2.title"></h4>
+                <p data-app-ja="homePage.features.2.description"></p>
+              </div>
+            </li>
+          </ol>
+          <a class="intro-details" href="treatment_page.html" data-app-ja="homePage.introDetailsLink"></a>
+        </aside>
+      </div>
+    </section>
+
+    <!-- アクセス -->
+    <section class="section access" id="access">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow" data-app-ja="homePage.accessEyebrow"></p>
+          <h2 class="section-title" data-app-ja="homePage.accessTitle"></h2>
+        </div>
+        <div class="access-grid">
+          <dl class="info-list">
+            <dt data-app-ja="contactLabels.businessHours"></dt>
+            <dd data-app-ja="businessHours"></dd>
+            <dt data-app-ja="contactLabels.closedDays"></dt>
+            <dd data-app-ja="closedDays"></dd>
+            <dt data-app-ja="contactLabels.address"></dt>
+            <dd data-app-ja="address"></dd>
+            <dt data-app-ja="contactLabels.phone"></dt>
+            <dd><a href="" data-app-ja="phone" data-app-ja-attr="href:phoneLink"></a></dd>
+            <dt data-app-ja="contactLabels.email"></dt>
+            <dd><a href="" data-app-ja="email" data-app-ja-attr="href:email"></a></dd>
+            <dt data-app-ja="contactLabels.access"></dt>
+            <dd data-app-ja="homePage.parkingAvailable"></dd>
+          </dl>
+          <div class="map-col">
+            <div class="map-box">
+              <iframe
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3188.3714597901503!2d140.90535597712406!3d36.95318435905882!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6021133d6af7cf97%3A0x8e030bce2a02caf3!2z44KI44KC44KTIOOBr-OCiuOBjeOCheOBhuayu-eZgumZog!5e0!3m2!1sja!2sjp!4v1790251815664!5m2!1sja!2sjp"
+                width="100%"
+                height="100%"
+                style="border:0;"
+                allowfullscreen=""
+                loading="lazy"
+                referrerpolicy="strict-origin-when-cross-origin"
+                title="" data-app-ja-attr="title:homePage.mapFrameTitle"
+              ></iframe>
+            </div>
+            <p class="map-link">
+              <a href="" target="_blank" rel="noopener" data-app-ja="homePage.mapDirectionsLink" data-app-ja-attr="href:homePage.mapDirectionsHref"></a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <site-footer active-page="home"></site-footer>
+
+  <script src="../../js/app_ja.js"></script>
+  <script src="../../js/component/shared_component.js"></script>
+  <script src="../../js/component/header_component.js"></script>
+  <script src="../../js/component/footer_component.js"></script>
+  <script src="../../js/main.js"></script>
+</body>
+</html>

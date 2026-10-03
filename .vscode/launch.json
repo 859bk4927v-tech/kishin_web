@@ -1,29 +1,18 @@
 {
-  // Start the local booking server, then open the homepage in Chrome.
+  // Start the local Worker, then open the site in Chrome. The server listens on LAN too.
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Kishin: サーバーを起動してChromeで開く",
-      "type": "debugpy",
+      "name": "Kishin: Run and Debugで起動（Chrome・iPhone確認）",
+      "type": "node-terminal",
       "request": "launch",
-      "program": "${workspaceFolder}/server.py",
+      "command": "npx wrangler dev --ip 0.0.0.0 --port 8002 --inspector-port 9232",
       "cwd": "${workspaceFolder}",
-      "console": "integratedTerminal",
-      "env": {
-        "PORT": "8001"
-      },
       "serverReadyAction": {
-        "pattern": "Local site and booking API: (https?://\\S+)",
-        "uriFormat": "%s/page/customer_page/home_page.html",
-        "action": "debugWithChrome"
+        "pattern": "Ready on http://.*",
+        "uriFormat": "http://127.0.0.1:8002/",
+        "action": "openExternally"
       }
-    },
-    {
-      "name": "Kishin: 料金ページをChromeで開く（サーバー起動済み）",
-      "type": "pwa-chrome",
-      "request": "launch",
-      "url": "http://localhost:8001/page/customer_page/price_page.html",
-      "webRoot": "${workspaceFolder}"
     }
   ]
 }

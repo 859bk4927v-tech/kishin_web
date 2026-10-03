@@ -1,0 +1,4 @@
+# Copy to .dev.vars. Keep all real values out of Git and chat.
+ADMIN_TOKEN=replace-with-a-long-random-secret
+LINE_CHANNEL_ACCESS_TOKEN=
+LINE_OWNER_USER_ID=

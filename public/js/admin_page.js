@@ -6,7 +6,7 @@ class BookingListItem {
 
   get heading() {
     const { startTime, endTime, customerName } = this.booking;
-    return `${startTime}〜${endTime}　${customerName}`;
+    return `${WeeklyCalendar.dateLabel(this.booking.date)} ${startTime}〜${endTime}　${customerName}`;
   }
 
   get details() {
@@ -47,19 +47,27 @@ class AdminPage {
     this.dateInput = this.document.getElementById("adminDate");
     this.bookingList = this.document.getElementById("bookingList");
     this.notice = this.document.getElementById("adminNotice");
-    this.token = sessionStorage.getItem("kishinAdminToken") || "";
+    this.token = "";
+    this.sessionVersion = 0;
+    this.refreshRequestId = 0;
+    this.calendar = this.document.getElementById('adminCalendar');
+    this.calendarStatus = this.document.getElementById('adminCalendarStatus');
+    this.cancelledList = this.document.getElementById('cancelledBookingList');
+    this.dialog = this.document.getElementById('bookingDialog');
   }
 
   start() {
     if (!this.loginForm) return;
+    sessionStorage.removeItem("kishinAdminToken");
     this.loginForm.addEventListener("submit", (event) => this.login(event));
     this.logoutButton.addEventListener("click", () => this.logout());
     this.document.getElementById("adminRefresh").addEventListener("click", () => this.refresh());
     this.dateInput.addEventListener("change", () => this.refresh());
-    if (this.token) {
-      this.tokenInput.value = this.token;
-      this.loginForm.requestSubmit();
-    }
+    this.document.getElementById('adminPrevious').addEventListener('click', () => this.changeWeek(-1));
+    this.document.getElementById('adminNext').addEventListener('click', () => this.changeWeek(1));
+    this.document.getElementById('bookingDialogClose').addEventListener('click', () => this.closeBookingDialog());
+    this.dialog.addEventListener('close', () => this.bookingList.replaceChildren());
+    window.addEventListener("pagehide", () => this.logout());
   }
 
   showNotice(message, kind = "error") {
@@ -68,26 +76,43 @@ class AdminPage {
     this.notice.textContent = message;
   }
 
+  clearNotice() {
+    this.notice.hidden = true;
+    this.notice.textContent = "";
+    this.notice.className = "booking-notice";
+  }
+
   async request(path, options = {}) {
+    const sessionVersion = this.sessionVersion;
     const headers = new Headers(options.headers || {});
     headers.set("Authorization", `Bearer ${this.token}`);
     headers.set("Accept", "application/json");
     if (options.body) headers.set("Content-Type", "application/json");
     const response = await fetch(path, { ...options, headers });
     const data = await response.json().catch(() => ({}));
+    if (sessionVersion !== this.sessionVersion) throw new Error("管理画面のセッションが変わりました。");
     if (!response.ok) {
-      if (response.status === 401) this.logout();
-      throw new Error(data.error || appJa.text("admin.communicationError"));
+      const error = new Error(data.error || appJa.text("admin.communicationError"));
+      error.status = response.status;
+      if (response.status === 401) { this.logout(); this.showNotice(error.message); }
+      throw error;
     }
     return data;
   }
 
   logout() {
+    this.refreshRequestId += 1;
+    this.sessionVersion += 1;
     this.token = "";
-    sessionStorage.removeItem("kishinAdminToken");
     this.tokenInput.value = "";
     this.dashboard.hidden = true;
     this.loginForm.hidden = false;
+    this.closeBookingDialog();
+    this.calendar.replaceChildren();
+    this.cancelledList.replaceChildren();
+    this.calendarStatus.textContent = '';
+    this.config = null;
+    this.clearNotice();
   }
 
   createButton(label, className, handler) {
@@ -99,17 +124,49 @@ class AdminPage {
     return button;
   }
 
-  renderBookings(bookings) {
+  closeBookingDialog() {
+    if (this.dialog.open) this.dialog.close();
     this.bookingList.replaceChildren();
-    if (!bookings.length) {
-      const emptyMessage = this.document.createElement("p");
-      emptyMessage.className = "booking-empty";
-      emptyMessage.textContent = appJa.text("admin.noBookings");
-      this.bookingList.append(emptyMessage);
-      return;
-    }
+  }
 
-    bookings.forEach((booking) => this.renderBookingCard(booking));
+  openBooking(booking) {
+    this.bookingList.replaceChildren();
+    this.renderBookingCard(booking);
+    this.dialog.showModal();
+  }
+
+  changeWeek(amount) {
+    if (!this.dateInput.value) return;
+    this.dateInput.value = WeeklyCalendar.addDays(this.dateInput.value, amount * 7);
+    this.refresh();
+  }
+
+  renderBookings(bookings) {
+    const dates = WeeklyCalendar.dates(this.dateInput.value);
+    const active = bookings.filter(booking => booking.status === 'confirmed');
+    const table = WeeklyCalendar.createTable(this.document, dates, WeeklyCalendar.times(this.config.schedule, true),
+      '予約管理：' + WeeklyCalendar.rangeLabel(this.dateInput.value), (cell, date, time) => {
+        const booking = active.find(item => item.date === date && item.startTime <= time && time < item.endTime);
+        if (!booking) {
+          const closed = this.config.closedWeekdays.includes(WeeklyCalendar.weekday(date));
+          cell.className = closed ? 'calendar-unavailable' : 'calendar-empty';
+          cell.textContent = closed ? '休' : '—';
+          return;
+        }
+        const button = this.createButton(`${booking.startTime}〜${booking.endTime}\n${booking.customerName}`, 'calendar-booking', () => this.openBooking(booking));
+        button.setAttribute('aria-label', `${WeeklyCalendar.dateLabel(date)} ${booking.startTime}〜${booking.endTime} ${booking.customerName} 予約情報を開く`);
+        cell.className = time === booking.startTime ? 'booking-start' : 'booking-continuation';
+        cell.append(button);
+      });
+    this.calendar.replaceChildren(table);
+    this.document.getElementById('adminWeekLabel').textContent = WeeklyCalendar.rangeLabel(this.dateInput.value);
+    this.calendarStatus.textContent = `この週の予約：${active.length}件`;
+    const cancelled = bookings.filter(booking => booking.status === 'cancelled');
+    this.cancelledList.replaceChildren();
+    cancelled.forEach(booking => {
+      this.cancelledList.append(this.createButton(`${WeeklyCalendar.dateLabel(booking.date)} ${booking.startTime} ${booking.customerName}`, 'btn btn-outline', () => this.openBooking(booking)));
+    });
+    this.document.getElementById('cancelledBookings').hidden = !cancelled.length;
   }
 
   renderBookingCard(booking) {
@@ -117,6 +174,7 @@ class AdminPage {
     const card = this.document.createElement("article");
     card.className = `booking-card ${booking.status === "cancelled" ? "is-cancelled" : ""}`;
     const heading = this.document.createElement("h2");
+    heading.id = "booking-detail-title";
     heading.textContent = item.heading;
     card.append(heading, this.createDetailsList(item.details));
 
@@ -177,8 +235,12 @@ class AdminPage {
     form.className = "reschedule-form";
     const dateLabel = this.createLabel(appJa.text("form.changedDate"));
     const date = this.createInput("date", booking.date);
+    date.id = "rescheduleDate";
+    dateLabel.htmlFor = date.id;
     const timeLabel = this.createLabel(appJa.text("form.changedStartTime"));
     const time = this.createInput("time", booking.startTime);
+    time.id = "rescheduleTime";
+    timeLabel.htmlFor = time.id;
     time.step = "1800";
     const saveButton = this.document.createElement("button");
     saveButton.type = "submit";
@@ -221,26 +283,58 @@ class AdminPage {
   }
 
   async refresh() {
-    if (!this.token || !this.dateInput.value) return false;
+    if (!this.token || !this.config) return false;
+    if (!this.dateInput.value) {
+      this.refreshRequestId += 1;
+      this.closeBookingDialog();
+      this.calendar.replaceChildren();
+      this.cancelledList.replaceChildren();
+      this.document.getElementById('cancelledBookings').hidden = true;
+      this.calendarStatus.textContent = '日付を選択してください。';
+      return false;
+    }
+    const requestId = ++this.refreshRequestId;
+    this.closeBookingDialog();
+    this.calendar.replaceChildren();
+    this.cancelledList.replaceChildren();
+    this.document.getElementById('cancelledBookings').hidden = true;
+    this.document.getElementById('adminWeekLabel').textContent = WeeklyCalendar.rangeLabel(this.dateInput.value);
+    this.calendarStatus.textContent = '一週間の予約を読み込んでいます…';
+    this.calendar.setAttribute('aria-busy', 'true');
     try {
-      const data = await this.request(`/api/admin/bookings?date=${encodeURIComponent(this.dateInput.value)}`);
-      this.renderBookings(data.bookings);
+      const results = await Promise.all(WeeklyCalendar.dates(this.dateInput.value).map(date =>
+        this.request(`/api/admin/bookings?date=${encodeURIComponent(date)}`)));
+      if (requestId !== this.refreshRequestId) return false;
+      this.renderBookings(results.flatMap(data => data.bookings));
       return true;
     } catch (error) {
+      if (requestId !== this.refreshRequestId) return false;
+      this.calendarStatus.textContent = '予約を読み込めませんでした。「一覧を更新」で再度お試しください。';
       this.showNotice(error.message);
       return false;
+    } finally {
+      if (requestId === this.refreshRequestId) this.calendar.setAttribute('aria-busy', 'false');
     }
   }
 
   async login(event) {
     event.preventDefault();
+    this.sessionVersion += 1;
+    const sessionVersion = this.sessionVersion;
     this.token = this.tokenInput.value.trim();
     if (!this.token) return;
-    sessionStorage.setItem("kishinAdminToken", this.token);
-    this.dateInput.value = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Tokyo" });
-    if (!(await this.refresh())) return;
-    this.loginForm.hidden = true;
-    this.dashboard.hidden = false;
+    try {
+      this.config = await this.request('/api/config');
+      if (sessionVersion !== this.sessionVersion) return;
+      this.dateInput.value = this.config.minDate;
+      if (!(await this.refresh())) return;
+      this.clearNotice();
+      this.tokenInput.value = '';
+      this.loginForm.hidden = true;
+      this.dashboard.hidden = false;
+    } catch (error) {
+      if (sessionVersion === this.sessionVersion) this.showNotice(error.message);
+    }
   }
 }
 

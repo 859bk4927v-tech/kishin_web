@@ -7,7 +7,7 @@
   <meta name="description" data-app-ja-attr="content:pageMeta.priceDescription" content="" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Shippori+Mincho:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&amp;display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="../../css/style.css" />
 </head>
 <body>
@@ -18,19 +18,19 @@
   <main id="main">
     <section class="hero" aria-labelledby="price-title">
       <div class="container">
-        <p class="hero-eyebrow">Price List</p>
-        <h1 id="price-title">施術料金</h1>
-        <p class="hero-lead">お一人ずつのお悩みや体の状態を伺い、施術内容をご案内します。料金について気になることがあれば、ご予約前にお気軽にお問い合わせください。</p>
+        <p class="hero-eyebrow" data-app-ja="pricePage.heroEyebrow"></p>
+        <h1 id="price-title" data-app-ja="pricePage.title"></h1>
+        <p class="hero-lead" data-app-ja="pricePage.lead"></p>
       </div>
     </section>
 
     <section class="section price price-page" aria-labelledby="price-list-title">
       <div class="container">
         <div class="section-head">
-          <p class="eyebrow">Menu</p>
-          <h2 class="section-title" id="price-list-title">料金表</h2>
+          <p class="eyebrow" data-app-ja="pricePage.menuEyebrow"></p>
+          <h2 class="section-title" id="price-list-title" data-app-ja="pricePage.listTitle"></h2>
         </div>
-        <div class="price-table" aria-label="施術料金（税込）">
+        <div class="price-table" aria-label="" data-app-ja-attr="aria-label:pricePage.tableLabel">
           <div class="price-row">
             <span class="name" data-app-ja="menus.first"></span>
             <span class="amount" data-app-ja="prices.first"></span>
@@ -48,10 +48,14 @@
             <span class="amount" data-app-ja="prices.meridian"></span>
           </div>
         </div>
-        <p class="price-note">表示価格はすべて税込です。</p>
+        <p class="payment-note">
+          <span data-app-ja="pricePage.paymentHeading"></span>：
+          <strong data-app-ja="pricePage.paymentCashOnly"></strong>
+        </p>
+        <p class="price-note" data-app-ja="pricePage.taxNote"></p>
         <div class="price-cta">
-          <a class="btn btn-primary" href="reservation_page.html">予約ページへ進む</a>
-          <a class="btn btn-primary" href="mailto:yomon.harikyu@gmail.com">メールで問い合わせる</a>
+          <a class="btn btn-primary" href="reservation_page.html" data-app-ja="pricePage.reservationLink"></a>
+          <a class="btn btn-primary" href="" data-app-ja="pricePage.contactEmailLink" data-app-ja-attr="href:email"></a>
         </div>
       </div>
     </section>

@@ -3,6 +3,11 @@ Thumbs.db
 .vscode/*
 !.vscode/launch.json
 .env
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+node_modules/
+.wrangler/
 data/
 __pycache__/
 *.py[cod]
