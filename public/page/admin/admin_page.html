@@ -4,15 +4,29 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex, nofollow" />
-  <title data-app-ja="pageMeta.adminTitle"></title>
+  <title data-app-ja="pageMeta.adminTitle">予約管理|よもん はりきゅう治療院</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&amp;display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="../../css/style.css" />
 </head>
 <body class="admin-page">
-  <a class="skip-link" href="#main" data-app-ja="actions.skipToContent"></a>
-  <site-header active-page="admin"></site-header>
+  <a class="skip-link" href="#main" data-app-ja="actions.skipToContent">本文へスキップ</a>
+  <site-header active-page="admin" data-rendered="true">
+<header class="site-header" id="siteHeader">
+        <div class="container header-inner">
+          <a class="brand" href="../customer_page/home_page" aria-label="よもん はりきゅう治療院 ホームへ">
+            <img class="brand-logo" src="../../assets/yomon_mark.svg" alt="" width="69" height="70" />
+            <span class="brand-copy">
+              <span class="brand-name">よもん はりきゅう治療院</span>
+              <span class="brand-sub">いわき市小名浜の地域密着鍼灸院</span>
+            </span>
+          </a>
+          <nav class="global-nav" id="globalNav" aria-label="メインメニュー"><ul><li><a href="../customer_page/home_page">ホーム</a></li><li><a href="../customer_page/price_page">料金</a></li><li><a href="../customer_page/treatment_page">施術内容</a></li><li><a href="../customer_page/reservation_page">予約</a></li></ul></nav>
+
+        </div>
+      </header>
+  </site-header>
   <main id="main">
     <section class="hero" aria-labelledby="admin-title">
       <div class="container"><p class="hero-eyebrow">Administrator</p><h1 id="admin-title">予約管理</h1><p class="hero-lead">予約情報はログイン後に表示されます。このページのURLを知っているだけでは、予約情報を見られません。</p></div>
@@ -21,26 +35,37 @@
       <div class="container admin-container">
         <div id="adminNotice" class="booking-notice" role="status" aria-live="polite" hidden></div>
         <form id="adminLogin" class="admin-login">
-          <label for="adminToken" data-app-ja="form.adminLoginLabel"></label>
+          <label for="adminToken" data-app-ja="form.adminLoginLabel">管理用トークン</label>
           <input id="adminToken" type="password" autocomplete="off" required />
-          <button class="btn btn-primary" type="submit" data-app-ja="form.adminSubmit"></button>
-          <small data-app-ja="form.adminTokenHelp"></small>
+          <button class="btn btn-primary" type="submit" data-app-ja="form.adminSubmit">予約を表示</button>
+          <small data-app-ja="form.adminTokenHelp">トークンは院長だけが管理し、GitHubや共有チャットに貼らないでください。</small>
         </form>
 
         <div id="adminDashboard" hidden>
           <div class="admin-toolbar">
-            <div class="form-field"><label for="adminDate" data-app-ja="form.adminDate"></label><input id="adminDate" type="date" /></div>
-            <button class="btn btn-primary" id="adminRefresh" type="button" data-app-ja="form.refresh"></button>
-            <button class="btn btn-outline" id="adminLogout" type="button" data-app-ja="form.logout"></button>
+            <div class="form-field"><label for="adminDate" data-app-ja="form.adminDate">予約日</label><input id="adminDate" type="date" /></div>
+            <button class="btn btn-primary" id="adminRefresh" type="button" data-app-ja="form.refresh">一覧を更新</button>
+            <button class="btn btn-outline" id="adminLogout" type="button" data-app-ja="form.logout">ログアウト</button>
           </div>
+          <form id="adminBlockForm" class="admin-block-form">
+            <h2>予定を登録して予約枠を塞ぐ</h2>
+            <p>日付と開始・終了時刻を選んでください。登録した時間はお客様の予約カレンダーに表示されません。</p>
+            <div class="admin-block-fields">
+              <div class="form-field"><label for="adminBlockDate">日付</label><input id="adminBlockDate" type="date" required /></div>
+              <div class="form-field"><label for="adminBlockStart">開始</label><select id="adminBlockStart" required></select></div>
+              <div class="form-field"><label for="adminBlockEnd">終了</label><select id="adminBlockEnd" required></select></div>
+              <div class="form-field admin-block-note"><label for="adminBlockNote">メモ(院長画面のみ表示・任意)</label><input id="adminBlockNote" type="text" maxlength="100" placeholder="例 : 外出" /></div>
+            </div>
+            <button id="adminBlockSubmit" class="btn btn-primary" type="submit">この時間を塞ぐ</button>
+          </form>
           <div class="calendar-navigation">
             <button type="button" id="adminPrevious" class="btn btn-outline">前の一週間</button>
             <p id="adminWeekLabel" class="calendar-range" aria-live="polite"></p>
             <button type="button" id="adminNext" class="btn btn-outline">次の一週間</button>
           </div>
-          <p id="adminCalendarHelp" class="field-help">予約済みの枠をタップすると、予約情報を確認できます。予約は施術終了までの時間に表示されます。</p>
+          <p id="adminCalendarHelp" class="field-help">予約済みの枠をタップすると予約情報を、予定で塞いだ枠をタップすると予定の詳細を確認できます。</p>
           <p class="calendar-scroll-hint">カレンダーを左右にスクロールすると、ほかの日付を確認できます。</p>
-            <p class="calendar-legend">予約済み：緑色の枠　空き：—　休院：休</p>
+            <p class="calendar-legend">予約済み : 緑色の枠 予定あり : 茶色の枠 空き : — 休院 : 休</p>
           <p id="adminCalendarStatus" role="status" aria-live="polite"></p>
           <div id="adminCalendar" class="calendar-scroll" role="region" aria-label="院長用週間予約カレンダー" aria-describedby="adminCalendarHelp" tabindex="0"></div>
           <details id="cancelledBookings" class="cancelled-bookings" hidden>
@@ -49,19 +74,52 @@
           </details>
           <dialog id="bookingDialog" class="booking-dialog" aria-labelledby="booking-detail-title">
             <button type="button" id="bookingDialogClose" class="btn btn-outline dialog-close">閉じる</button>
+            <div id="bookingDialogNotice" class="booking-notice" role="status" aria-live="polite" hidden></div>
             <div id="bookingList" class="booking-list"></div>
           </dialog>
         </div>
       </div>
     </section>
   </main>
-  <site-footer active-page="admin"></site-footer>
+  <site-footer active-page="admin" data-rendered="true">
+<footer class="site-footer">
+        <div class="container">
+          <div class="footer-grid">
+            <div>
+              <a class="brand" href="../customer_page/home_page" aria-label="よもん はりきゅう治療院 ホームへ">
+                <span class="brand-name">よもん はりきゅう治療院</span>
+                <span class="brand-sub">いわき市小名浜の地域密着鍼灸院</span>
+              </a>
+              <p class="footer-tagline">心と体が、
+すっきり軽くなる毎日</p>
+            </div>
+            <div>
+              <h2 class="footer-title">メニュー</h2>
+              <nav class="footer-nav" aria-label="フッターメニュー"><a href="../customer_page/home_page">ホーム</a><a href="../customer_page/price_page">料金</a><a href="../customer_page/treatment_page">施術内容</a><a href="../customer_page/reservation_page">予約</a></nav>
+            </div>
+            <div>
+              <h2 class="footer-title">CONTACT</h2>
+              <p class="footer-contact">
+                住所 : 〒971-8161 福島県いわき市小名浜諏訪町22-3<br />
+                院長 : 佐藤 聖真(サトウ キシン)<br />
+                電話 : <a href="tel:07085738131">070-8573-8131</a><br />
+                メール : <a href="mailto:yomon.harikyu@gmail.com">yomon.harikyu@gmail.com</a><br />
+                営業時間 : 9 : 00~24 : 00<br />
+                休診日 : 金曜日
+              </p>
+            </div>
+          </div>
+          <p class="footer-copy">© <span id="year">2026</span> Yomon Harikyu. All rights reserved.</p>
+        </div>
+      </footer>
+  </site-footer>
   <script src="../../js/app_ja.js"></script>
   <script src="../../js/component/shared_component.js"></script>
   <script src="../../js/component/header_component.js"></script>
   <script src="../../js/component/footer_component.js"></script>
   <script src="../../js/main.js"></script>
   <script src="../../js/weekly_calendar.js"></script>
+  <script src="../../js/api_client.js"></script>
   <script src="../../js/admin_page.js"></script>
 </body>
 </html>

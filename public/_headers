@@ -5,3 +5,6 @@
 
 /page/admin/*
   X-Robots-Tag: noindex, nofollow
+
+/page/customer_page/reservation_complete_page*
+  X-Robots-Tag: noindex, nofollow

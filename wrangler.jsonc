@@ -7,7 +7,12 @@
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
-    "run_worker_first": ["/api/*"]
+    "html_handling": "auto-trailing-slash",
+    "run_worker_first": ["/api/*", "/", "/index.html", "/robots.txt", "/sitemap.xml", "/page/*"]
+  },
+  "build": {
+    "command": "npm run build:static",
+    "watch_dir": ["public/js", "scripts"]
   },
   "d1_databases": [
     {
@@ -18,6 +23,7 @@
     }
   ],
   "vars": {
-    "BOOKING_DAYS_AHEAD": "60"
+    "BOOKING_DAYS_AHEAD": "60",
+    "SITE_URL": ""
   }
 }

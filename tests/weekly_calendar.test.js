@@ -19,14 +19,17 @@ test('weekly dates cross month/year boundaries and leap days without local timez
 test('public config exposes the same schedule used by the booking service', async () => {
   const config = await BookingApi.getConfig({ BOOKING_DAYS_AHEAD: '60' }).json();
   assert.deepEqual(config.schedule, BOOKING_SCHEDULE);
+  assert.deepEqual(Object.keys(config.menus), ['first_visit', 'followup_60', 'followup_90']);
+  assert.deepEqual(Object.values(config.menus).map(({ duration, price }) => [duration, price]), [[80, 7000], [60, 6000], [90, 9000]]);
   assert.equal(config.maxDate, Calendar.addDays(config.minDate, 60));
   const starts = Array.from(Calendar.times(config.schedule));
-  assert.equal(starts[0], '10:00');
-  assert.equal(starts.at(-1), '18:00');
-  assert.equal(starts.length, 17);
+  assert.equal(starts[0], '09:00');
+  assert.deepEqual(config.closedWeekdays, [5]);
+  assert.equal(starts.at(-1), '23:30');
+  assert.equal(starts.length, 30);
   const occupiedTimes = Array.from(Calendar.times(config.schedule, true));
-  assert.equal(occupiedTimes.at(-1), '18:30');
-  assert.equal(occupiedTimes.length, 18);
+  assert.equal(occupiedTimes.at(-1), '23:30');
+  assert.equal(occupiedTimes.length, 30);
 });
 
 test('weekly admin reads remain protected by authentication', async () => {
@@ -41,16 +44,18 @@ test('weekly admin reads remain protected by authentication', async () => {
 
 function reservationHarness(fetch) {
   const sandbox = vm.createContext({
-    document: { getElementById: () => null }, window: {}, URLSearchParams, Date, Map, Set, fetch,
+    document: { getElementById: () => null }, window: {}, URLSearchParams, Date, Map, Set, Headers, fetch,
     appJa: { text: key => key }
   });
   vm.runInContext(fs.readFileSync(new URL('../public/js/weekly_calendar.js', import.meta.url), 'utf8'), sandbox);
+  vm.runInContext(fs.readFileSync(new URL('../public/js/api_client.js', import.meta.url), 'utf8'), sandbox);
   vm.runInContext(fs.readFileSync(new URL('../public/js/reservation_page.js', import.meta.url), 'utf8') + '\nthis.Page = ReservationPage;', sandbox);
   const page = Object.create(sandbox.Page.prototype);
   Object.assign(page, {
-    availabilityRequestId: 0, date: { value: '' }, time: { value: '' }, menu: { value: 'first' },
+    document: sandbox.document,
+    availabilityRequestId: 0, date: { value: '' }, time: { value: '' }, menu: { value: 'first_visit' },
     calendarRetry: { hidden: true }, calendar: { setAttribute() {}, focus() {} }, slotMessage: { textContent: '' },
-    config: { minDate: '2099-01-05', maxDate: '2099-03-06', closedWeekdays: [0] }, weekStart: '2099-01-05',
+    config: { minDate: '2099-01-05', maxDate: '2099-03-06', closedWeekdays: [5], schedule: BOOKING_SCHEDULE, menus: { first_visit: { duration: 80 } } }, weekStart: '2099-01-05',
     clearSelection() { this.date.value = ''; this.time.value = ''; }, renderCalendar() {}
   });
   return page;
@@ -78,7 +83,7 @@ test('failed availability clears prior choices and exposes retry, not stale slot
   await page.loadSlots();
   assert.equal(page.date.value, ''); assert.equal(page.time.value, '');
   assert.equal(page.available.size, 0); assert.equal(page.calendarRetry.hidden, false);
-  assert.equal(page.slotMessage.textContent, 'offline');
+  assert.equal(page.slotMessage.textContent, 'booking.communicationError');
 });
 
 test('a booking cannot be submitted without selecting a calendar slot', async () => {
@@ -90,4 +95,22 @@ test('a booking cannot be submitted without selecting a calendar slot', async ()
   await page.submit({ preventDefault() {} });
   assert.equal(requested, false);
   assert.match(message, /日時を選択/);
+});
+
+
+test('evening filter shows late slots and clears a now-hidden selection', () => {
+  const page = reservationHarness(() => {});
+  page.eveningOnly = { checked: true };
+  page.available = new Map([['2099-01-05', new Set(['09:00'])]]);
+  page.calendar.getAttribute = () => 'false';
+  page.date.value = '2099-01-05'; page.time.value = '09:00';
+  page.changeTimeFilter();
+  assert.equal(page.time.value, '');
+  assert.deepEqual(Array.from(page.visibleTimes()), ['18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30','22:00','22:30']);
+  assert.match(page.slotMessage.textContent, /18:00以降に空きはありません/);
+  page.available.get('2099-01-05').add('22:30');
+  page.updateAvailabilityMessage();
+  assert.match(page.slotMessage.textContent, /○/);
+  page.eveningOnly.checked = false;
+  assert.equal(page.visibleTimes().length, 28);
 });

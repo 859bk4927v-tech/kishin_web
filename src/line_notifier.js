@@ -1,8 +1,20 @@
 import { BookingService, MENUS } from "./booking_service.js";
 
 export class LineNotifier {
+  static createMessage(booking, eventLabel) {
+    const when = BookingService.formatParts(booking.start_at);
+    return [
+      `【よもん はりきゅう治療院】${eventLabel}`,
+      `予約番号 : ${booking.booking_number}`,
+      `日時 : ${when.year}年${when.month}月${when.day}日(${when.weekday}) ${when.hour} : ${when.minute}`,
+      `メニュー : ${MENUS[booking.menu]?.name || booking.menu}`,
+      `お名前 : ${booking.customer_name}`,
+      `電話番号 : ${booking.phone}`
+    ].join("\n");
+  }
+
   static async sendAndRecord(db, bookingId, env, eventLabel = "予約が入りました", resetRetry = false) {
-    const booking = await db.prepare("SELECT * FROM bookings WHERE id = ?").bind(bookingId).first();
+    const booking = await BookingService.findBooking(db, bookingId);
     if (!booking || booking.status !== "confirmed") return { status: "failed", error: "予約が見つかりません。" };
 
     const token = env.LINE_CHANNEL_ACCESS_TOKEN || "";
@@ -20,29 +32,21 @@ export class LineNotifier {
       retryKey = crypto.randomUUID();
       retryCreatedAt = BookingService.isoLocal(new Date());
     } else if (retryCreatedAt && Date.now() - Date.parse(retryCreatedAt) > 24 * 60 * 60 * 1000) {
-      return { status: "failed", error: "LINEの安全な再送期限（24時間）を過ぎています。重複通知を避けるため自動再送しません。" };
+      return { status: "failed", error: "LINEの安全な再送期限(24時間)を過ぎています。重複通知を避けるため自動再送しません。" };
     }
 
     await db.prepare(
       "UPDATE bookings SET line_retry_key = ?, line_retry_created_at = ? WHERE id = ?"
     ).bind(retryKey, retryCreatedAt, bookingId).run();
 
-    const menu = MENUS[booking.menu];
-    const when = BookingService.formatParts(booking.start_at);
-    const message = [
-      `【よもん はりきゅう治療院】${eventLabel}`,
-      `予約番号：${booking.booking_number}`,
-      `日時：${when.year}年${when.month}月${when.day}日（${when.weekday}） ${when.hour}:${when.minute}`,
-      `メニュー：${menu.name}`,
-      `お名前：${booking.customer_name}`,
-      `電話番号：${booking.phone}`
-    ].join("\n");
+    const message = this.createMessage(booking, eventLabel);
 
     let status = "failed";
     let error = "LINE APIに接続できませんでした。";
     try {
       const response = await fetch("https://api.line.me/v2/bot/message/push", {
         method: "POST",
+        signal: AbortSignal.timeout(10000),
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",

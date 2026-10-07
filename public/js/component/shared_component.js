@@ -12,6 +12,6 @@ class SiteNavigation {
   }
 
   static homeHref(activePage) {
-    return activePage === "admin" ? "../customer_page/home_page.html" : "home_page.html";
+    return this.pageHref(activePage, "home_page.html");
   }
 }

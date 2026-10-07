@@ -3,24 +3,90 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title data-app-ja="pageMeta.reservationTitle"></title>
-  <meta name="description" data-app-ja-attr="content:pageMeta.reservationDescription" content="" />
+  <title data-app-ja="pageMeta.reservationTitle">Web予約|いわき市小名浜 よもん はりきゅう治療院</title>
+  <meta name="description" data-app-ja-attr="content:pageMeta.reservationDescription" content="いわき市小名浜、よもん はりきゅう治療院のWeb予約。営業時間は9 : 00~24 : 00、金曜休診。仕事帰りの時間も、メニューとカレンダーの空き日時を選んでご予約いただけます。" />
+  <link rel="canonical" href="/page/customer_page/reservation_page" />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="ja_JP" />
+  <meta property="og:site_name" content="よもん はりきゅう治療院" />
+  <meta property="og:title" content="Web予約|いわき市小名浜 よもん はりきゅう治療院" />
+  <meta property="og:description" content="いわき市小名浜、よもん はりきゅう治療院のWeb予約。営業時間は9 : 00~24 : 00、金曜休診。仕事帰りの時間も、メニューとカレンダーの空き日時を選んでご予約いただけます。" />
+  <meta property="og:url" content="/page/customer_page/reservation_page" />
+  <meta property="og:image" content="/assets/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="よもん はりきゅう治療院 - いわき市小名浜の鍼灸院" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <script type="application/ld+json" data-site-schema>
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "@id": "/page/customer_page/reservation_page#webpage",
+      "url": "/page/customer_page/reservation_page",
+      "name": "Web予約|いわき市小名浜 よもん はりきゅう治療院",
+      "description": "いわき市小名浜、よもん はりきゅう治療院のWeb予約。営業時間は9 : 00~24 : 00、金曜休診。仕事帰りの時間も、メニューとカレンダーの空き日時を選んでご予約いただけます。",
+      "inLanguage": "ja",
+      "isPartOf": {
+        "@id": "/page/customer_page/home_page#website"
+      },
+      "about": {
+        "@id": "/page/customer_page/home_page#clinic"
+      }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "ホーム",
+          "item": "/page/customer_page/home_page"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Web予約",
+          "item": "/page/customer_page/reservation_page"
+        }
+      ]
+    }
+  ]
+}
+  </script>
+  <link rel="icon" href="../../assets/yomon_mark.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&amp;display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="../../css/style.css" />
 </head>
 <body class="reservation-page">
-  <a class="skip-link" href="#main" data-app-ja="actions.skipToContent"></a>
+  <a class="skip-link" href="#main" data-app-ja="actions.skipToContent">本文へスキップ</a>
 
-  <site-header active-page="reservation"></site-header>
+  <site-header active-page="reservation" data-rendered="true">
+<header class="site-header" id="siteHeader">
+        <div class="container header-inner">
+          <a class="brand" href="home_page" aria-label="よもん はりきゅう治療院 ホームへ">
+            <img class="brand-logo" src="../../assets/yomon_mark.svg" alt="" width="69" height="70" />
+            <span class="brand-copy">
+              <span class="brand-name">よもん はりきゅう治療院</span>
+              <span class="brand-sub">いわき市小名浜の地域密着鍼灸院</span>
+            </span>
+          </a>
+          <nav class="global-nav" id="globalNav" aria-label="メインメニュー"><ul><li><a href="home_page">ホーム</a></li><li><a href="price_page">料金</a></li><li><a href="treatment_page">施術内容</a></li><li><a href="reservation_page" class="is-active" aria-current="page">予約</a></li></ul></nav>
+          <a class="btn btn-primary nav-cta" href="tel:07085738131">電話する</a>
+        </div>
+      </header>
+  </site-header>
 
   <main id="main">
     <section class="hero" aria-labelledby="reservation-title">
       <div class="container">
-        <p class="hero-eyebrow" data-app-ja="reservationPage.heroEyebrow"></p>
-        <h1 id="reservation-title" data-app-ja="reservationPage.title"></h1>
-        <p class="hero-lead" data-app-ja="reservationPage.lead"></p>
+        <p class="hero-eyebrow" data-app-ja="reservationPage.heroEyebrow">Reservation</p>
+        <h1 id="reservation-title" data-app-ja="reservationPage.title">Web予約</h1>
+        <p class="hero-lead" data-app-ja="reservationPage.lead">メニューとご希望の日時を選び、お客様情報を入力してください。営業時間は9 : 00~24 : 00、金曜日は休診日です。予約は送信後に確定します。</p>
       </div>
     </section>
 
@@ -32,35 +98,36 @@
         </section>
 
         <div class="section-head">
-          <p class="eyebrow" data-app-ja="reservationPage.formEyebrow"></p>
-          <h2 class="section-title" id="booking-form-title" data-app-ja="reservationPage.formTitle"></h2>
+          <p class="eyebrow" data-app-ja="reservationPage.formEyebrow">Book a Visit</p>
+          <h2 class="section-title" id="booking-form-title" data-app-ja="reservationPage.formTitle">ご予約内容</h2>
         </div>
 
         <div id="bookingNotice" class="booking-notice" role="status" aria-live="polite" hidden></div>
 
         <form id="bookingForm" class="booking-form">
           <div class="form-field">
-            <label for="menu"><span data-app-ja="form.menuLabel"></span> <span class="required" data-app-ja="form.required"></span></label>
-            <select id="menu" name="menu" required>
-              <option value="" data-app-ja="form.chooseMenu"></option>
-              <option value="first"></option>
-              <option value="acupuncture"></option>
-              <option value="acupuncture_moxa"></option>
-              <option value="meridian"></option>
+            <label for="menu"><span data-app-ja="form.menuLabel">施術メニュー</span> <span class="required" data-app-ja="form.required">必須</span></label>
+            <select id="menu" name="menu" required aria-describedby="menuSummary">
+              <option value="" data-app-ja="form.chooseMenu">メニューを選択してください</option>
             </select>
+            <p id="menuSummary" class="field-help" aria-live="polite" hidden></p>
           </div>
 
           <fieldset class="calendar-field">
             <legend>希望日時を選択 <span class="required">必須</span></legend>
             <p id="calendarHelp" class="field-help">メニューを選び、カレンダーの「○」をタップしてください。</p>
-            <p id="dateHelp" class="field-help" data-app-ja="form.dateHelp"></p>
+            <p id="dateHelp" class="field-help" data-app-ja="form.dateHelp">予約可能な日付を選択してください。</p>
+            <label class="calendar-time-filter" for="eveningOnly">
+              <input id="eveningOnly" type="checkbox" aria-controls="bookingCalendar" />
+              <span>18 : 00以降のみ表示</span>
+            </label>
             <div class="calendar-navigation">
               <button type="button" id="bookingPrevious" class="btn btn-outline" disabled>前の一週間</button>
               <p id="bookingWeekLabel" class="calendar-range" aria-live="polite"></p>
               <button type="button" id="bookingNext" class="btn btn-outline" disabled>次の一週間</button>
             </div>
             <p class="calendar-scroll-hint">カレンダーを左右にスクロールすると、ほかの日付を確認できます。</p>
-            <p class="calendar-legend">○ 予約可能　× 受付不可　✓ 選択中</p>
+            <p class="calendar-legend">○ 予約可能 × 受付不可 ✓ 選択中</p>
             <p id="slotMessage" class="field-help" role="status" aria-live="polite"></p>
             <button type="button" id="bookingCalendarRetry" class="btn btn-outline" hidden>再読み込み</button>
             <div id="bookingCalendar" class="calendar-scroll" role="region" aria-label="予約日時カレンダー" aria-describedby="calendarHelp" tabindex="0"></div>
@@ -72,33 +139,65 @@
           <div class="form-divider" aria-hidden="true"></div>
 
           <div class="form-field">
-            <label for="customerName"><span data-app-ja="form.nameLabel"></span> <span class="required" data-app-ja="form.required"></span></label>
+            <label for="customerName"><span data-app-ja="form.nameLabel">お名前</span> <span class="required" data-app-ja="form.required">必須</span></label>
             <input id="customerName" name="name" type="text" autocomplete="name" maxlength="80" required />
           </div>
           <div class="form-field">
-            <label for="customerPhone"><span data-app-ja="form.phoneLabel"></span> <span class="required" data-app-ja="form.required"></span></label>
-            <input id="customerPhone" name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="30" placeholder="" data-app-ja-attr="placeholder:form.phonePlaceholder" required />
+            <label for="customerPhone"><span data-app-ja="form.phoneLabel">電話番号</span> <span class="required" data-app-ja="form.required">必須</span></label>
+            <input id="customerPhone" name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="30" placeholder="例 : 070-1234-5678" data-app-ja-attr="placeholder:form.phonePlaceholder" required />
           </div>
           <div class="form-field">
-            <label for="customerEmail"><span data-app-ja="form.emailLabel"></span> <span class="optional" data-app-ja="form.optional"></span></label>
-            <input id="customerEmail" name="email" type="email" autocomplete="email" maxlength="254" />
+            <label for="customerEmail"><span data-app-ja="form.emailLabel">メールアドレス</span> <span class="optional" data-app-ja="form.optional">任意</span></label>
+            <input id="customerEmail" name="email" type="email" autocomplete="email" maxlength="254" aria-describedby="emailHelp" />
+            <p id="emailHelp" class="field-help" data-app-ja="form.emailHelp">ご連絡用の任意項目です。予約確認メールは自動送信されません。</p>
           </div>
 
           <div class="privacy-note">
-            <p data-app-ja="form.privacyNotice"></p>
+            <p data-app-ja="form.privacyNotice">ご入力いただいた情報は、ご予約の受付・確認・連絡に使用します。症状や病歴などの情報はこのフォームでは収集しません。</p>
           </div>
 
-          <label class="honeypot" aria-hidden="true"><span data-app-ja="form.honeypot"></span><input name="website" type="text" tabindex="-1" autocomplete="off" /></label>
+          <label class="honeypot" aria-hidden="true"><span data-app-ja="form.honeypot">この欄は入力しないでください</span><input name="website" type="text" tabindex="-1" autocomplete="off" /></label>
           <button class="btn btn-primary btn-lg booking-submit" id="bookingSubmit" type="submit"></button>
         </form>
 
-        <p class="booking-contact"><span data-app-ja="form.bookingContact"></span> <a href="" data-app-ja="phone" data-app-ja-attr="href:phoneLink"></a> <span data-app-ja="form.contactOr"></span> <a href="" data-app-ja="form.emailLink" data-app-ja-attr="href:email"></a><span data-app-ja="reservationPage.contactSentenceEnd"></span></p>
-        <p class="booking-admin-link"><a href="../admin/admin_page.html" data-app-ja="reservationPage.adminManagementLink"></a></p>
+        <p class="booking-contact"><span data-app-ja="form.bookingContact">ご不明な点は</span> <a href="tel:07085738131" data-app-ja="phone" data-app-ja-attr="href:phoneHref">070-8573-8131</a> <span data-app-ja="form.contactOr">または</span> <a href="mailto:yomon.harikyu@gmail.com" data-app-ja="form.emailLink" data-app-ja-attr="href:emailHref">メール</a><span data-app-ja="reservationPage.contactSentenceEnd">でお問い合わせください。</span></p>
+        <p class="booking-admin-link"><a href="../admin/admin_page.html" data-app-ja="reservationPage.adminManagementLink">院長用 予約管理</a></p>
       </div>
     </section>
   </main>
 
-  <site-footer active-page="reservation"></site-footer>
+  <site-footer active-page="reservation" data-rendered="true">
+<footer class="site-footer">
+        <div class="container">
+          <div class="footer-grid">
+            <div>
+              <a class="brand" href="home_page" aria-label="よもん はりきゅう治療院 ホームへ">
+                <span class="brand-name">よもん はりきゅう治療院</span>
+                <span class="brand-sub">いわき市小名浜の地域密着鍼灸院</span>
+              </a>
+              <p class="footer-tagline">心と体が、
+すっきり軽くなる毎日</p>
+            </div>
+            <div>
+              <h2 class="footer-title">メニュー</h2>
+              <nav class="footer-nav" aria-label="フッターメニュー"><a href="home_page">ホーム</a><a href="price_page">料金</a><a href="treatment_page">施術内容</a><a href="reservation_page" aria-current="page">予約</a></nav>
+            </div>
+            <div>
+              <h2 class="footer-title">CONTACT</h2>
+              <p class="footer-contact">
+                住所 : 〒971-8161 福島県いわき市小名浜諏訪町22-3<br />
+                院長 : 佐藤 聖真(サトウ キシン)<br />
+                電話 : <a href="tel:07085738131">070-8573-8131</a><br />
+                メール : <a href="mailto:yomon.harikyu@gmail.com">yomon.harikyu@gmail.com</a><br />
+                営業時間 : 9 : 00~24 : 00<br />
+                休診日 : 金曜日
+              </p>
+            </div>
+          </div>
+          <p class="footer-copy">© <span id="year">2026</span> Yomon Harikyu. All rights reserved.</p>
+        </div>
+      </footer>
+  </site-footer>
 
   <script src="../../js/app_ja.js"></script>
   <script src="../../js/component/shared_component.js"></script>
@@ -106,6 +205,8 @@
   <script src="../../js/component/footer_component.js"></script>
   <script src="../../js/main.js"></script>
   <script src="../../js/weekly_calendar.js"></script>
+  <script src="../../js/api_client.js"></script>
+  <script src="../../js/booking_receipt.js"></script>
   <script src="../../js/reservation_page.js"></script>
 </body>
 </html>

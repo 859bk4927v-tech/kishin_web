@@ -22,7 +22,7 @@ class SiteFooter extends HTMLElement {
             <div>
               <a class="brand" href="${SiteNavigation.homeHref(this.activePage)}" aria-label="${copy.actions.clinicHome}">
                 <span class="brand-name">${copy.shopName}</span>
-                <span class="brand-sub">${copy.shopBrand}</span>
+                <span class="brand-sub">${copy.headerDescription}</span>
               </a>
               <p class="footer-tagline">${copy.tagline}</p>
             </div>
@@ -33,12 +33,12 @@ class SiteFooter extends HTMLElement {
             <div>
               <h2 class="footer-title">${copy.navigation.contactTitle}</h2>
               <p class="footer-contact">
-                ${copy.contactLabels.address}：${copy.address}<br />
-                ${copy.contactLabels.director}：${copy.directorName}<br />
-                ${copy.contactLabels.phone}：<a href="tel:${copy.phoneLink}">${copy.phone}</a><br />
-                ${copy.contactLabels.email}：<a href="mailto:${copy.email}">${copy.email}</a><br />
-                ${copy.contactLabels.businessHours}：${copy.businessHours}<br />
-                ${copy.contactLabels.closedDays}：${copy.closedDays}
+                ${copy.contactLabels.address} : ${copy.address}<br />
+                ${copy.contactLabels.director} : ${copy.directorName}<br />
+                ${copy.contactLabels.phone} : <a href="${copy.phoneHref}">${copy.phone}</a><br />
+                ${copy.contactLabels.email} : <a href="${copy.emailHref}">${copy.email}</a><br />
+                ${copy.contactLabels.businessHours} : ${copy.businessHours}<br />
+                ${copy.contactLabels.closedDays} : ${copy.closedDays}
               </p>
             </div>
           </div>

@@ -1,17 +1,15 @@
-// Web Component responsible for rendering and controlling the site header.
+// Web Component responsible for rendering the always-visible site navigation.
 class SiteHeader extends HTMLElement {
   static callsToAction = {
     home: { label: appJa.strings.actions.book, href: "reservation_page.html" },
     price: { label: appJa.strings.actions.book, href: "reservation_page.html" },
     treatment: { label: appJa.strings.actions.book, href: "reservation_page.html" },
-    reservation: { label: appJa.strings.actions.call, href: `tel:${appJa.strings.phoneLink}` },
+    reservation: { label: appJa.strings.actions.call, href: appJa.strings.phoneHref },
     admin: null
   };
 
   connectedCallback() {
-    if (this.dataset.rendered === "true") return;
-    this.render();
-    this.bindNavigationEvents();
+    if (this.dataset.rendered !== "true") this.render();
     this.dataset.rendered = "true";
   }
 
@@ -29,46 +27,18 @@ class SiteHeader extends HTMLElement {
       <header class="site-header" id="siteHeader">
         <div class="container header-inner">
           <a class="brand" href="${SiteNavigation.homeHref(this.activePage)}" aria-label="${appJa.strings.actions.clinicHome}">
-            <img class="brand-logo" src="../../assets/yomon_logo.svg" alt="" />
+            <img class="brand-logo" src="../../assets/yomon_mark.svg" alt="" width="69" height="70" />
             <span class="brand-copy">
               <span class="brand-name">${appJa.strings.shopName}</span>
-              <span class="brand-sub">${appJa.strings.shopBrand}</span>
+              <span class="brand-sub">${appJa.strings.headerDescription}</span>
             </span>
           </a>
           <nav class="global-nav" id="globalNav" aria-label="${appJa.strings.actions.mainNavigation}"><ul>${links}</ul></nav>
           ${cta ? `<a class="btn btn-primary nav-cta" href="${cta.href}">${cta.label}</a>` : ""}
-          <button class="nav-toggle" id="navToggle" type="button" aria-expanded="false" aria-controls="globalNav" aria-label="${appJa.strings.actions.menuOpen}">
-            <span></span><span></span><span></span>
-          </button>
         </div>
       </header>`;
   }
 
-  bindNavigationEvents() {
-    this.nav = this.querySelector("#globalNav");
-    this.toggle = this.querySelector("#navToggle");
-    this.toggle.addEventListener("click", () => this.toggleMenu());
-    this.nav.querySelectorAll("a").forEach((link) => link.addEventListener("click", () => this.closeMenu()));
-    document.addEventListener("pointerdown", (event) => {
-      if (this.toggle.getAttribute("aria-expanded") === "true" && !this.contains(event.target)) {
-        this.closeMenu();
-      }
-    });
-  }
-
-  toggleMenu() {
-    const isOpen = this.nav.classList.toggle("is-open");
-    this.toggle.classList.toggle("is-open", isOpen);
-    this.toggle.setAttribute("aria-expanded", String(isOpen));
-    this.toggle.setAttribute("aria-label", isOpen ? appJa.strings.actions.menuClose : appJa.strings.actions.menuOpen);
-  }
-
-  closeMenu() {
-    this.nav.classList.remove("is-open");
-    this.toggle.classList.remove("is-open");
-    this.toggle.setAttribute("aria-expanded", "false");
-    this.toggle.setAttribute("aria-label", appJa.strings.actions.menuOpen);
-  }
 }
 
 if (!customElements.get("site-header")) customElements.define("site-header", SiteHeader);

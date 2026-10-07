@@ -6,17 +6,11 @@ class BookingListItem {
 
   get heading() {
     const { startTime, endTime, customerName } = this.booking;
-    return `${WeeklyCalendar.dateLabel(this.booking.date)} ${startTime}〜${endTime}　${customerName}`;
+    return WeeklyCalendar.displayText(`${WeeklyCalendar.dateLabel(this.booking.date)} ${startTime}~${endTime} ${customerName}`);
   }
 
   get details() {
     const booking = this.booking;
-    const menuNames = {
-      first: appJa.strings.menus.first,
-      acupuncture: appJa.strings.menus.acupuncture,
-      acupuncture_moxa: appJa.strings.menus.acupunctureMoxa,
-      meridian: appJa.strings.menus.meridian
-    };
     const notificationNames = {
       sent: appJa.text("admin.notificationSent"),
       failed: appJa.text("admin.notificationFailed"),
@@ -25,7 +19,7 @@ class BookingListItem {
     };
     return [
       [appJa.text("admin.labelBookingNumber"), booking.bookingNumber],
-      [appJa.text("admin.labelMenu"), menuNames[booking.menu] || booking.menu],
+      [appJa.text("admin.labelMenu"), booking.menuName || booking.menu],
       [appJa.text("admin.labelPhone"), booking.phone],
       [appJa.text("admin.labelEmail"), booking.email || appJa.text("admin.emailMissing")],
       [appJa.text("admin.labelStatus"), booking.status === "confirmed" ? appJa.text("admin.statusConfirmed") : appJa.text("admin.statusCancelled")],
@@ -45,6 +39,12 @@ class AdminPage {
     this.logoutButton = this.document.getElementById("adminLogout");
     this.dashboard = this.document.getElementById("adminDashboard");
     this.dateInput = this.document.getElementById("adminDate");
+    this.blockForm = this.document.getElementById("adminBlockForm");
+    this.blockDate = this.document.getElementById("adminBlockDate");
+    this.blockStart = this.document.getElementById("adminBlockStart");
+    this.blockEnd = this.document.getElementById("adminBlockEnd");
+    this.blockNote = this.document.getElementById("adminBlockNote");
+    this.blockSubmit = this.document.getElementById("adminBlockSubmit");
     this.bookingList = this.document.getElementById("bookingList");
     this.notice = this.document.getElementById("adminNotice");
     this.token = "";
@@ -54,15 +54,25 @@ class AdminPage {
     this.calendarStatus = this.document.getElementById('adminCalendarStatus');
     this.cancelledList = this.document.getElementById('cancelledBookingList');
     this.dialog = this.document.getElementById('bookingDialog');
+    this.dialogNotice = this.document.getElementById('bookingDialogNotice');
   }
 
   start() {
     if (!this.loginForm) return;
-    sessionStorage.removeItem("kishinAdminToken");
+    try {
+      sessionStorage.removeItem("kishinAdminToken");
+    } catch {
+      // The admin token is held only in memory, even when browser storage is disabled.
+    }
     this.loginForm.addEventListener("submit", (event) => this.login(event));
     this.logoutButton.addEventListener("click", () => this.logout());
     this.document.getElementById("adminRefresh").addEventListener("click", () => this.refresh());
-    this.dateInput.addEventListener("change", () => this.refresh());
+    this.dateInput.addEventListener("change", () => {
+      this.blockDate.value = this.dateInput.value;
+      this.refresh();
+    });
+    this.blockForm.addEventListener("submit", (event) => this.saveBlock(event));
+    this.blockStart.addEventListener("change", () => this.updateBlockEndOptions());
     this.document.getElementById('adminPrevious').addEventListener('click', () => this.changeWeek(-1));
     this.document.getElementById('adminNext').addEventListener('click', () => this.changeWeek(1));
     this.document.getElementById('bookingDialogClose').addEventListener('click', () => this.closeBookingDialog());
@@ -71,33 +81,34 @@ class AdminPage {
   }
 
   showNotice(message, kind = "error") {
-    this.notice.hidden = false;
-    this.notice.className = `booking-notice is-${kind}`;
-    this.notice.textContent = message;
+    for (const notice of [this.notice, this.dialogNotice]) {
+      notice.hidden = false;
+      notice.className = `booking-notice is-${kind}`;
+      notice.textContent = message;
+    }
   }
 
   clearNotice() {
-    this.notice.hidden = true;
-    this.notice.textContent = "";
-    this.notice.className = "booking-notice";
+    for (const notice of [this.notice, this.dialogNotice]) {
+      notice.hidden = true;
+      notice.textContent = "";
+      notice.className = "booking-notice";
+    }
   }
 
   async request(path, options = {}) {
     const sessionVersion = this.sessionVersion;
     const headers = new Headers(options.headers || {});
     headers.set("Authorization", `Bearer ${this.token}`);
-    headers.set("Accept", "application/json");
-    if (options.body) headers.set("Content-Type", "application/json");
-    const response = await fetch(path, { ...options, headers });
-    const data = await response.json().catch(() => ({}));
-    if (sessionVersion !== this.sessionVersion) throw new Error("管理画面のセッションが変わりました。");
-    if (!response.ok) {
-      const error = new Error(data.error || appJa.text("admin.communicationError"));
-      error.status = response.status;
-      if (response.status === 401) { this.logout(); this.showNotice(error.message); }
+    try {
+      const data = await ApiClient.request(path, { ...options, headers });
+      if (sessionVersion !== this.sessionVersion) throw new Error("管理画面のセッションが変わりました。");
+      return data;
+    } catch (error) {
+      if (sessionVersion !== this.sessionVersion) throw new Error("管理画面のセッションが変わりました。");
+      if (error.status === 401) { this.logout(); this.showNotice(error.message); }
       throw error;
     }
-    return data;
   }
 
   logout() {
@@ -119,7 +130,7 @@ class AdminPage {
     const button = this.document.createElement("button");
     button.type = "button";
     button.className = className;
-    button.textContent = label;
+    button.textContent = WeeklyCalendar.displayText(label);
     button.addEventListener("click", handler);
     return button;
   }
@@ -130,37 +141,47 @@ class AdminPage {
   }
 
   openBooking(booking) {
+    this.dialogNotice.hidden = true;
     this.bookingList.replaceChildren();
     this.renderBookingCard(booking);
     this.dialog.showModal();
   }
 
   changeWeek(amount) {
-    if (!this.dateInput.value) return;
+    if (!WeeklyCalendar.isValidDate(this.dateInput.value)) return;
     this.dateInput.value = WeeklyCalendar.addDays(this.dateInput.value, amount * 7);
+    this.blockDate.value = this.dateInput.value;
     this.refresh();
   }
 
-  renderBookings(bookings) {
+  renderBookings(bookings, blocks) {
     const dates = WeeklyCalendar.dates(this.dateInput.value);
     const active = bookings.filter(booking => booking.status === 'confirmed');
     const table = WeeklyCalendar.createTable(this.document, dates, WeeklyCalendar.times(this.config.schedule, true),
-      '予約管理：' + WeeklyCalendar.rangeLabel(this.dateInput.value), (cell, date, time) => {
+      '予約管理 : ' + WeeklyCalendar.rangeLabel(this.dateInput.value), (cell, date, time) => {
         const booking = active.find(item => item.date === date && item.startTime <= time && time < item.endTime);
         if (!booking) {
+          const block = blocks.find(item => item.date === date && item.startTime <= time && time < item.endTime);
+          if (block) {
+            const button = this.createButton('予定あり', 'calendar-block', () => this.openBlock(block));
+            button.setAttribute('aria-label', WeeklyCalendar.displayText(`${WeeklyCalendar.dateLabel(date)} ${block.startTime}~${block.endTime} 登録した予定を開く`));
+            cell.className = time === block.startTime ? 'block-start' : 'block-continuation';
+            cell.append(button);
+            return;
+          }
           const closed = this.config.closedWeekdays.includes(WeeklyCalendar.weekday(date));
           cell.className = closed ? 'calendar-unavailable' : 'calendar-empty';
           cell.textContent = closed ? '休' : '—';
           return;
         }
-        const button = this.createButton(`${booking.startTime}〜${booking.endTime}\n${booking.customerName}`, 'calendar-booking', () => this.openBooking(booking));
-        button.setAttribute('aria-label', `${WeeklyCalendar.dateLabel(date)} ${booking.startTime}〜${booking.endTime} ${booking.customerName} 予約情報を開く`);
+        const button = this.createButton(`${booking.startTime}~${booking.endTime}\n${booking.customerName}`, 'calendar-booking', () => this.openBooking(booking));
+        button.setAttribute('aria-label', WeeklyCalendar.displayText(`${WeeklyCalendar.dateLabel(date)} ${booking.startTime}~${booking.endTime} ${booking.customerName} 予約情報を開く`));
         cell.className = time === booking.startTime ? 'booking-start' : 'booking-continuation';
         cell.append(button);
       });
     this.calendar.replaceChildren(table);
     this.document.getElementById('adminWeekLabel').textContent = WeeklyCalendar.rangeLabel(this.dateInput.value);
-    this.calendarStatus.textContent = `この週の予約：${active.length}件`;
+    this.calendarStatus.textContent = appJa.format(`この週の予約 : ${active.length}件・予定 : ${blocks.length}件`);
     const cancelled = bookings.filter(booking => booking.status === 'cancelled');
     this.cancelledList.replaceChildren();
     cancelled.forEach(booking => {
@@ -184,11 +205,96 @@ class AdminPage {
       actions.append(this.createButton(appJa.text("admin.changeDateTime"), "btn btn-outline", () => this.showReschedule(card, booking)));
       actions.append(this.createButton(appJa.text("admin.cancel"), "btn btn-danger", () => this.cancelBooking(booking)));
     }
-    if (booking.notificationStatus === "failed" || booking.notificationStatus === "not_configured") {
+    if (booking.status === 'confirmed' && ['failed', 'not_configured', 'pending'].includes(booking.notificationStatus)) {
       actions.append(this.createButton(appJa.text("admin.resendLine"), "btn btn-outline", () => this.resendNotification(booking)));
     }
     card.append(actions);
     this.bookingList.append(card);
+  }
+
+  openBlock(block) {
+    this.dialogNotice.hidden = true;
+    this.bookingList.replaceChildren();
+    const card = this.document.createElement('article');
+    card.className = 'booking-card';
+    const heading = this.document.createElement('h2');
+    heading.id = 'booking-detail-title';
+    heading.textContent = '登録した予定';
+    card.append(heading, this.createDetailsList([
+      ['日時', WeeklyCalendar.displayText(`${WeeklyCalendar.dateLabel(block.date)} ${block.startTime}~${block.endTime}`)],
+      ['メモ', block.note || 'なし']
+    ]));
+    const actions = this.document.createElement('div');
+    actions.className = 'booking-actions';
+    actions.append(this.createButton('この予定を解除', 'btn btn-danger', () => this.deleteBlock(block)));
+    card.append(actions);
+    this.bookingList.append(card);
+    this.dialog.showModal();
+  }
+
+  populateBlockTimes() {
+    const times = WeeklyCalendar.times(this.config.schedule, true);
+    const closing = this.config.schedule.closingMinute;
+    const endTime = `${String(Math.floor(closing / 60)).padStart(2, '0')}:${String(closing % 60).padStart(2, '0')}`;
+    const fill = (select, values) => {
+      select.replaceChildren(...values.map(value => {
+        const option = this.document.createElement('option');
+        option.value = value;
+        option.textContent = WeeklyCalendar.displayText(value);
+        return option;
+      }));
+    };
+    fill(this.blockStart, times);
+    fill(this.blockEnd, [...times.slice(1), endTime]);
+    this.updateBlockEndOptions();
+  }
+
+  updateBlockEndOptions() {
+    for (const option of this.blockEnd.options) {
+      option.disabled = option.value <= this.blockStart.value;
+    }
+    if (this.blockEnd.value <= this.blockStart.value) {
+      this.blockEnd.value = Array.from(this.blockEnd.options).find(option => !option.disabled)?.value || '';
+    }
+  }
+
+  async saveBlock(event) {
+    event.preventDefault();
+    if (this.blockEnd.value <= this.blockStart.value) {
+      this.showNotice('終了時刻は開始時刻より後にしてください。');
+      return;
+    }
+    this.blockSubmit.disabled = true;
+    try {
+      await this.request('/api/admin/blocks', {
+        method: 'POST',
+        body: JSON.stringify({
+          date: this.blockDate.value,
+          startTime: this.blockStart.value,
+          endTime: this.blockEnd.value,
+          note: this.blockNote.value
+        })
+      });
+      this.dateInput.value = this.blockDate.value;
+      this.blockNote.value = '';
+      this.showNotice('予定を登録し、予約枠を塞ぎました。', 'success');
+      await this.refresh();
+    } catch (error) {
+      this.showNotice(error.message);
+    } finally {
+      this.blockSubmit.disabled = false;
+    }
+  }
+
+  async deleteBlock(block) {
+    if (!window.confirm(`${WeeklyCalendar.dateLabel(block.date)} ${block.startTime}~${block.endTime} の予定を解除しますか?`)) return;
+    try {
+      await this.request(`/api/admin/blocks/${encodeURIComponent(block.id)}`, { method: 'DELETE' });
+      this.showNotice('予定を解除しました。', 'success');
+      await this.refresh();
+    } catch (error) {
+      this.showNotice(error.message);
+    }
   }
 
   createDetailsList(rows) {
@@ -242,6 +348,12 @@ class AdminPage {
     time.id = "rescheduleTime";
     timeLabel.htmlFor = time.id;
     time.step = "1800";
+    const times = WeeklyCalendar.times(this.config.schedule);
+    time.min = times[0];
+    const duration = booking.durationMinutes;
+    time.max = WeeklyCalendar.times(this.config.schedule, false, duration).at(-1);
+    date.min = this.config.minDate;
+    date.max = this.config.maxDate;
     const saveButton = this.document.createElement("button");
     saveButton.type = "submit";
     saveButton.className = "btn btn-primary";
@@ -284,7 +396,7 @@ class AdminPage {
 
   async refresh() {
     if (!this.token || !this.config) return false;
-    if (!this.dateInput.value) {
+    if (!WeeklyCalendar.isValidDate(this.dateInput.value)) {
       this.refreshRequestId += 1;
       this.closeBookingDialog();
       this.calendar.replaceChildren();
@@ -305,7 +417,7 @@ class AdminPage {
       const results = await Promise.all(WeeklyCalendar.dates(this.dateInput.value).map(date =>
         this.request(`/api/admin/bookings?date=${encodeURIComponent(date)}`)));
       if (requestId !== this.refreshRequestId) return false;
-      this.renderBookings(results.flatMap(data => data.bookings));
+      this.renderBookings(results.flatMap(data => data.bookings), results.flatMap(data => data.blocks || []));
       return true;
     } catch (error) {
       if (requestId !== this.refreshRequestId) return false;
@@ -327,6 +439,10 @@ class AdminPage {
       this.config = await this.request('/api/config');
       if (sessionVersion !== this.sessionVersion) return;
       this.dateInput.value = this.config.minDate;
+      this.blockDate.min = this.config.minDate;
+      this.blockDate.max = this.config.maxDate;
+      this.blockDate.value = this.config.minDate;
+      this.populateBlockTimes();
       if (!(await this.refresh())) return;
       this.clearNotice();
       this.tokenInput.value = '';
