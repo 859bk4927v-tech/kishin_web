@@ -99,8 +99,8 @@ const japaneseStrings = {
     greetingEyebrow: "Greeting",
     greetingTitleLead: "はじめまして、",
     greetingTitleSuffix: "です",
-    greetingBody: "真心と誠実さを大切に、一人ひとりに寄り添う安心・安全な鍼灸治療をご提供します。当院では丁寧な問診を行い、その日の体調や症状に合わせて鍼の太さや深さ、お灸の熱さを細かく調整し、お悩みに最適な治療内容を事前にしっかり説明した上で施術を致します。",
-    greetingLearning: "院長は毎週東京で最新の鍼灸技術を学び、日々の施術に取り入れています。",
+    greetingBody: "患者さまの心に寄り添い、つらい痛みの原因や頑固な筋肉の凝りの\"そこ\"にしっかり届く施術をお届けいたします。",
+    greetingLearning: "院長は毎週東京で研修を重ね、鍼灸の知識と技術を常にアップデートし、日々の施術に活かしています。",
     greetingClosing: "長年つらいと感じている首肩や腰の不調、言葉にしがたいお体の違和感なども、どうか遠慮なくご相談ください。皆さまのご来院を心よりお待ちしております。",
     instagramAccount: "Instagram : @yomon_harikyu",
     instagramHref: "https://www.instagram.com/yomon_harikyu/",
@@ -118,7 +118,7 @@ const japaneseStrings = {
     features: [
       { title: "安心安全な鍼灸治療のご提供" },
       { title: "エビデンスに基づいた鍼灸治療" },
-      { title: "患者様の生活背景に沿ったご提案" },
+      { title: "患者さまの生活背景に沿ったご提案" },
       { title: "丁寧で誠実な問診" },
       { title: "一人ひとりに合わせた施術" }
     ],
@@ -205,8 +205,6 @@ const japaneseStrings = {
     lead: "メニューとご希望の日時を選び、お客様情報を入力してください。営業時間は9:00~24:00、金曜日は休診日です。予約は送信後に確定します。",
     formEyebrow: "Book a Visit",
     formTitle: "ご予約内容",
-    contactSentenceEnd: "でお問い合わせください。",
-    adminManagementLink: "院長用 予約管理"
   },
   menus: {
     firstVisit: "初診 : カウンセリング20分 + 施術60分",
@@ -238,9 +236,6 @@ const japaneseStrings = {
     dateHelp: "予約可能な日付を選択してください。",
     privacyNotice: "ご入力いただいた情報は、ご予約の受付・確認・連絡に使用します。症状や病歴などの情報はこのフォームでは収集しません。",
     honeypot: "この欄は入力しないでください",
-    bookingContact: "ご不明な点は",
-    contactOr: "または",
-    emailLink: "メール",
     adminLoginLabel: "管理用トークン",
     adminSubmit: "予約を表示",
     adminTokenHelp: "トークンは院長だけが管理し、GitHubや共有チャットに貼らないでください。",

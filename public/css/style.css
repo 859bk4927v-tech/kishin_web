@@ -642,25 +642,6 @@ site-header {
   color: var(--ink-soft);
 }
 
-.booking-contact,
-.booking-admin-link {
-  margin-top: 22px;
-  text-align: center;
-  color: var(--ink-soft);
-  font-size: 0.9rem;
-}
-
-.booking-contact a,
-.booking-admin-link a {
-  color: var(--green-700);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.booking-admin-link {
-  font-size: 0.78rem;
-}
-
 .booking-notice {
   margin: 0 auto 22px;
   padding: 15px 18px;
@@ -1552,7 +1533,6 @@ section[id] { scroll-margin-top: 104px; }
   .info-list { grid-template-columns: 5em minmax(0, 1fr); gap: 12px; }
   .info-list dd { overflow-wrap: anywhere; }
   .site-footer .brand-sub { white-space: normal; }
-  .booking-contact { overflow-wrap: anywhere; }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }

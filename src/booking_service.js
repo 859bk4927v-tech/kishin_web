@@ -1,5 +1,6 @@
 const JST = "Asia/Tokyo";
 const SLOT_MINUTES = 30;
+const BOOKING_BUFFER_MINUTES = 30;
 const OPENING_MINUTE = 9 * 60;
 const LAST_START_MINUTE = 23 * 60 + 30;
 const CLOSING_MINUTE = 24 * 60;
@@ -7,6 +8,7 @@ export const CLOSED_WEEKDAYS = Object.freeze([5]);
 
 export const BOOKING_SCHEDULE = Object.freeze({
   slotMinutes: SLOT_MINUTES,
+  bookingBufferMinutes: BOOKING_BUFFER_MINUTES,
   openingMinute: OPENING_MINUTE,
   lastStartMinute: LAST_START_MINUTE,
   closingMinute: CLOSING_MINUTE
@@ -128,6 +130,10 @@ export class BookingService {
     return `${date}T${hour}:${String(minute % 60).padStart(2, "0")}:00+09:00`;
   }
 
+  static addMinutes(timestamp, minutes) {
+    return this.isoLocal(new Date(Date.parse(timestamp) + minutes * 60_000));
+  }
+
   static endTimeLabel(start, end) {
     const nextDay = `${start.year}-${start.month}-${start.day}` !== `${end.year}-${end.month}-${end.day}`;
     return `${nextDay && end.hour === "00" ? "24" : end.hour}:${end.minute}`;
@@ -208,10 +214,10 @@ export class BookingService {
     const dayStart = `${dateText}T00:00:00+09:00`;
     const dayEnd = `${this.addDays(dateText, 1)}T00:00:00+09:00`;
     const occupied = await db.prepare(`
-      SELECT start_at, end_at FROM bookings
+      SELECT start_at, end_at, 'booking' AS period_type FROM bookings
       WHERE status = 'confirmed' AND id != ? AND start_at < ? AND end_at > ?
       UNION ALL
-      SELECT start_at, end_at FROM blocked_periods WHERE start_at < ? AND end_at > ?
+      SELECT start_at, end_at, 'block' AS period_type FROM blocked_periods WHERE start_at < ? AND end_at > ?
     `).bind(excludeId || '', dayEnd, dayStart, dayEnd, dayStart).all();
     const slots = [];
     for (let startMinute = OPENING_MINUTE; startMinute <= LAST_START_MINUTE; startMinute += SLOT_MINUTES) {
@@ -222,7 +228,10 @@ export class BookingService {
       const startAt = `${dateText}T${timeText}:00+09:00`;
       if (Date.parse(startAt) <= Date.now()) continue;
       const { endAt } = this.parseStart(dateText, timeText, menu.duration);
-      const collision = occupied.results.some(period => period.start_at < endAt && period.end_at > startAt);
+      const collision = occupied.results.some(period => period.period_type === "booking"
+        ? period.start_at < this.addMinutes(endAt, BOOKING_BUFFER_MINUTES)
+          && period.end_at > this.addMinutes(startAt, -BOOKING_BUFFER_MINUTES)
+        : period.start_at < endAt && period.end_at > startAt);
       if (!collision) slots.push(timeText);
     }
     return slots;
@@ -256,8 +265,8 @@ export class BookingService {
       booking.email,
       booking.createdAt,
       booking.createdAt,
-      booking.endAt,
-      booking.startAt,
+      this.addMinutes(booking.endAt, BOOKING_BUFFER_MINUTES),
+      this.addMinutes(booking.startAt, -BOOKING_BUFFER_MINUTES),
       booking.endAt,
       booking.startAt
     ).first();
@@ -301,7 +310,11 @@ export class BookingService {
           SELECT 1 FROM blocked_periods WHERE start_at < ? AND end_at > ?
         )
       RETURNING id
-    `).bind(startAt, endAt, this.isoLocal(new Date()), bookingId, bookingId, endAt, startAt, endAt, startAt).first();
+    `).bind(
+      startAt, endAt, this.isoLocal(new Date()), bookingId, bookingId,
+      this.addMinutes(endAt, BOOKING_BUFFER_MINUTES), this.addMinutes(startAt, -BOOKING_BUFFER_MINUTES),
+      endAt, startAt
+    ).first();
   }
 
   static async listBlocks(db, dateText) {
