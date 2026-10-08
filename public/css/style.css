@@ -519,6 +519,13 @@ site-header {
   gap: 12px;
 }
 
+.treatment-page .price-cta {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 /* ============ booking ============ */
 .booking-section {
   background: var(--white);
@@ -1214,6 +1221,15 @@ site-footer {
   .price-row .name { font-size: 0.94rem; }
   .price-row .amount { font-size: 1.7rem; }
   .site-header .brand-sub { white-space: normal; }
+
+  .treatment-page .price-cta {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .treatment-page .price-cta .btn {
+    width: 100%;
+  }
 
   .site-header .brand {
     gap: 6px;

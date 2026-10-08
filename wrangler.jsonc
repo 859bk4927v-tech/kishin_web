@@ -4,6 +4,10 @@
   "main": "src/worker.js",
   "compatibility_date": "2026-09-25",
   "workers_dev": true,
+  "routes": [
+    { "pattern": "yomon-harikyu.com/*", "zone_name": "yomon-harikyu.com" },
+    { "pattern": "www.yomon-harikyu.com/*", "zone_name": "yomon-harikyu.com" }
+  ],
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
@@ -18,12 +22,12 @@
     {
       "binding": "BOOKING_DB",
       "database_name": "kishin-bookings",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "2d8f2d82-9bc4-43b8-9b9d-55336dbe0e28",
       "migrations_dir": "migrations"
     }
   ],
   "vars": {
     "BOOKING_DAYS_AHEAD": "60",
-    "SITE_URL": ""
+    "SITE_URL": "https://yomon-harikyu.com"
   }
 }
