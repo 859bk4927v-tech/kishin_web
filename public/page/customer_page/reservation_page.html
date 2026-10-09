@@ -61,6 +61,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&amp;display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="../../css/style.css" />
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body class="reservation-page">
   <a class="skip-link" href="#main" data-app-ja="actions.skipToContent">本文へスキップ</a>
@@ -155,6 +156,8 @@
           <div class="privacy-note">
             <p data-app-ja="form.privacyNotice">ご入力いただいた情報は、ご予約の受付・確認・連絡に使用します。症状や病歴などの情報はこのフォームでは収集しません。</p>
           </div>
+
+          <div class="cf-turnstile" data-sitekey="0x4AAAAAAFSJWtla-JMx4Cpq"></div>
 
           <label class="honeypot" aria-hidden="true"><span data-app-ja="form.honeypot">この欄は入力しないでください</span><input name="website" type="text" tabindex="-1" autocomplete="off" /></label>
           <button class="btn btn-primary btn-lg booking-submit" id="bookingSubmit" type="submit"></button>

@@ -243,7 +243,8 @@ class ReservationPage {
       name: this.form.elements.name.value.trim(),
       phone: this.form.elements.phone.value.trim(),
       email: this.form.elements.email.value.trim(),
-      website: this.form.elements.website.value
+      website: this.form.elements.website.value,
+      turnstileToken: this.form.querySelector('[name="cf-turnstile-response"]')?.value || ""
     };
   }
 
