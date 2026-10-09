@@ -276,6 +276,7 @@ class ReservationPage {
     } catch (error) {
       this.showNotice(error.message, "error");
       this.notice.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (window.turnstile) window.turnstile.reset();
       if (error.status === 409) await this.loadSlots();
     } finally {
       this.submitting = false;

@@ -33,6 +33,17 @@ function booking(date, time, menu = 'first_visit') {
   };
 }
 
+function mockTurnstile(t, result = { success: true, hostname: 'example.test' }) {
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    assert.equal(url, 'https://challenges.cloudflare.com/turnstile/v0/siteverify');
+    assert.equal(options.method, 'POST');
+    const form = new URLSearchParams(options.body);
+    assert.equal(form.get('secret'), 'test-turnstile-secret');
+    assert.ok(form.get('response'));
+    return new Response(JSON.stringify(result), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  });
+}
+
 test('Friday is closed while Sunday accepts reservations through the API', async t => {
   const db = database(t);
   const upcoming = Array.from({ length: 7 }, (_, i) => Service.addDays(Service.todayJst(), i + 1));
@@ -89,12 +100,13 @@ test('new and repeated booking responses include the saved receipt details', asy
     .find(value => new Date(`${value}T00:00:00Z`).getUTCDay() !== 5);
   const body = {
     idempotencyKey: 'receipt-test-key-1234', menu: 'first_visit', date, time: '10:00',
-    name: '予約テスト', phone: '09000000000', email: '', website: ''
+    name: '予約テスト', phone: '09000000000', email: '', website: '', turnstileToken: 'test-turnstile-token'
   };
   const request = () => new Request('https://example.test/api/bookings', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
   });
-  const env = { BOOKING_DB: db, BOOKING_DAYS_AHEAD: '60' };
+  const env = { BOOKING_DB: db, BOOKING_DAYS_AHEAD: '60', TURNSTILE_SECRET: 'test-turnstile-secret' };
+  mockTurnstile(t);
   const first = await BookingApi.createBooking(request(), env);
   assert.equal(first.status, 201);
   const created = await first.json();
@@ -195,13 +207,14 @@ test('legacy reservations keep their saved duration when rescheduled and cannot 
 test('notification exceptions do not turn a saved reservation into an API error', async t => {
   const db = database(t);
   t.mock.method(LineNotifier, 'sendAndRecord', async () => { throw new Error('notification DB failed'); });
+  mockTurnstile(t);
   const date = Array.from({ length: 7 }, (_, i) => Service.addDays(Service.todayJst(), i + 1))
     .find(value => new Date(`${value}T00:00:00Z`).getUTCDay() !== 5);
   const body = {
-    idempotencyKey: 'notification-exception-test', menu: 'followup_60', date, time: '10:00', name: 'テスト', phone: '09000000000'
+    idempotencyKey: 'notification-exception-test', menu: 'followup_60', date, time: '10:00', name: 'テスト', phone: '09000000000', turnstileToken: 'test-turnstile-token'
   };
   const request = () => new Request('https://example.test/api/bookings', { method: 'POST', body: JSON.stringify(body) });
-  const env = { BOOKING_DB: db, BOOKING_DAYS_AHEAD: '60' };
+  const env = { BOOKING_DB: db, BOOKING_DAYS_AHEAD: '60', TURNSTILE_SECRET: 'test-turnstile-secret' };
   const response = await BookingApi.createBooking(request(), env);
   assert.equal(response.status, 201);
   assert.equal((await response.json()).notificationStatus, 'failed');
@@ -211,6 +224,43 @@ test('notification exceptions do not turn a saved reservation into an API error'
   const cancelledRetry = await BookingApi.createBooking(request(), env);
   assert.equal(cancelledRetry.status, 409);
   assert.match((await cancelledRetry.json()).error, /キャンセル済み/);
+});
+
+test('booking requires a Turnstile secret before writing to the database', async t => {
+  const db = database(t);
+  let databaseReads = 0;
+  const guardedDb = { prepare() { databaseReads += 1; throw new Error('Database must not be touched'); } };
+  const date = Array.from({ length: 7 }, (_, i) => Service.addDays(Service.todayJst(), i + 1))
+    .find(value => new Date(`${value}T00:00:00Z`).getUTCDay() !== 5);
+  const request = new Request('https://example.test/api/bookings', {
+    method: 'POST', body: JSON.stringify({
+      idempotencyKey: 'turnstile-secret-missing', menu: 'followup_60', date, time: '10:00',
+      name: 'テスト', phone: '09000000000', turnstileToken: 'test-turnstile-token'
+    })
+  });
+
+  const response = await BookingApi.createBooking(request, { BOOKING_DB: guardedDb });
+  assert.equal(response.status, 503);
+  assert.equal(databaseReads, 0);
+  assert.match((await response.json()).error, /認証設定/);
+  assert.equal(await Service.listBookings(db, date).then(rows => rows.length), 0);
+});
+
+test('booking rejects a failed Turnstile verification without saving it', async t => {
+  const db = database(t);
+  mockTurnstile(t, { success: false, hostname: 'example.test', 'error-codes': ['invalid-input-response'] });
+  const date = Array.from({ length: 7 }, (_, i) => Service.addDays(Service.todayJst(), i + 1))
+    .find(value => new Date(`${value}T00:00:00Z`).getUTCDay() !== 5);
+  const request = new Request('https://example.test/api/bookings', {
+    method: 'POST', body: JSON.stringify({
+      idempotencyKey: 'turnstile-rejected-token', menu: 'followup_60', date, time: '10:00',
+      name: 'テスト', phone: '09000000000', turnstileToken: 'invalid-token'
+    })
+  });
+
+  const response = await BookingApi.createBooking(request, { BOOKING_DB: db, TURNSTILE_SECRET: 'test-turnstile-secret' });
+  assert.equal(response.status, 403);
+  assert.equal((await Service.listBookings(db, date)).length, 0);
 });
 
 test('menu and start validation reject inherited keys and invalid treatment lengths', () => {

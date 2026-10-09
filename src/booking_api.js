@@ -69,6 +69,41 @@ export class BookingApi {
     return Number.isFinite(configured) ? Math.max(1, Math.min(180, configured)) : 60;
   }
 
+  static async verifyTurnstile(request, env, token) {
+    const secret = env.TURNSTILE_SECRET;
+    if (typeof secret !== "string" || !secret.trim()) {
+      return this.json(503, { error: "予約受付の認証設定が完了していません。時間をおいて再度お試しください。" });
+    }
+    if (typeof token !== "string" || token.length < 1 || token.length > 2048) {
+      return this.json(400, { error: "Turnstile認証を完了してから、もう一度お試しください。" });
+    }
+
+    try {
+      const form = new URLSearchParams({ secret, response: token });
+      const remoteIp = request.headers.get("CF-Connecting-IP");
+      if (remoteIp) form.set("remoteip", remoteIp);
+      const response = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: form.toString(),
+        signal: AbortSignal.timeout(5000)
+      });
+      if (!response.ok) {
+        return this.json(503, { error: "認証サービスに接続できませんでした。時間をおいて再度お試しください。" });
+      }
+
+      const result = await response.json();
+      const requestHostname = new URL(request.url).hostname.toLowerCase();
+      if (result?.success !== true || typeof result.hostname !== "string"
+        || result.hostname.toLowerCase() !== requestHostname) {
+        return this.json(403, { error: "認証を確認できませんでした。ページを再読み込みして、もう一度お試しください。" });
+      }
+      return null;
+    } catch {
+      return this.json(503, { error: "認証サービスに接続できませんでした。時間をおいて再度お試しください。" });
+    }
+  }
+
   static bookingReceipt(row) {
     const booking = BookingService.toBooking(row);
     return {
@@ -214,6 +249,9 @@ export class BookingApi {
     } catch (error) {
       return this.json(400, { error: error.message || "予約内容を確認してください。" });
     }
+
+    const turnstileError = await this.verifyTurnstile(request, env, body.turnstileToken);
+    if (turnstileError) return turnstileError;
 
     const datePart = selectedDate.replaceAll("-", "");
     const random = Array.from(crypto.getRandomValues(new Uint8Array(2)), (byte) => byte.toString(16).padStart(2, "0")).join("").toUpperCase();
