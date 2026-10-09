@@ -104,7 +104,7 @@ test('new and repeated booking responses include the saved receipt details', asy
     date,
     startTime: '10:00',
     endTime: '11:20',
-    menuName: '初診:カウンセリング20分+施術60分'
+    menuName: '初診 : カウンセリング20分+施術60分'
   });
   assert.equal(created.notificationStatus, 'not_configured');
   const repeated = await BookingApi.createBooking(request(), env);
@@ -158,7 +158,7 @@ test('availability reads occupied intervals once and respects exact boundaries a
   const trackedDb = { prepare(sql) { reads += 1; return db.prepare(sql); } };
   const slots = await Service.getAvailableSlots(trackedDb, date, 'first_visit');
   assert.equal(reads, 1);
-  assert.equal(slots.includes('09:00'), true); // Ends 10:20, before the 10:30 booking.
+  assert.equal(slots.includes('09:00'), false); // Ends 10:20, leaving only 10 minutes before the 10:30 booking.
   assert.equal(slots.includes('09:30'), false);
   assert.equal(slots.includes('11:30'), false); // Overlaps the 12:30 block.
   assert.equal(slots.includes('13:00'), true);

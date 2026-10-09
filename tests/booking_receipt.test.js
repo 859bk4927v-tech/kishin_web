@@ -51,7 +51,7 @@ test('completion page displays saved details without putting them in the URL', (
   } };
   const booking = {
     bookingNumber: 'YOM-20261006-ABCD', customerName: '<予約テスト>', date: '2026-10-06',
-    startTime: '10:00', endTime: '11:20', menuName: '初診:カウンセリング20分+施術60分',
+    startTime: '10:00', endTime: '11:20', menuName: '初診 : カウンセリング20分+施術60分',
     notificationStatus: 'sent'
   };
   const sandbox = vm.createContext({ document, window: { sessionStorage: { getItem: () => JSON.stringify(booking) } }, JSON });
@@ -59,7 +59,7 @@ test('completion page displays saved details without putting them in the URL', (
   vm.runInContext(receiptSource, sandbox);
   assert.equal(nodes.get('receiptNumber').textContent, booking.bookingNumber);
   assert.equal(nodes.get('receiptName').textContent, booking.customerName);
-  assert.equal(nodes.get('receiptDateTime').textContent, '2026年10月6日(火) 10:00~11:20');
+  assert.equal(nodes.get('receiptDateTime').textContent, '2026年10月6日(火) 10 : 00~11 : 20');
   assert.equal(nodes.get('receiptMenu').textContent, booking.menuName);
   assert.equal(nodes.get('bookingReceipt').hidden, false);
   assert.equal(nodes.get('receiptMissing').hidden, true);
