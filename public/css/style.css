@@ -1367,7 +1367,10 @@ site-footer {
 
 .calendar-scroll {
   max-width: 100%;
-  overflow-x: auto;
+  max-height: min(680px, 70vh);
+  max-height: min(680px, 70dvh);
+  overflow: auto;
+  scroll-padding-top: 72px;
   border: 1px solid var(--line);
   border-radius: 8px;
   margin-top: 12px;
@@ -1418,6 +1421,14 @@ site-footer {
   z-index: 1;
   box-shadow: 1px 0 var(--line);
 }
+
+.week-calendar thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.week-calendar thead th:first-child { z-index: 3; }
 
 .week-calendar thead th span { display: block; }
 .week-calendar .is-sunday { color: #a4483e; }
@@ -1546,6 +1557,7 @@ site-footer {
 @media (max-width: 380px) {
   :is(.reservation-page, .admin-page) .week-calendar th:first-child { width: 40px; }
   :is(.reservation-page, .admin-page) .week-calendar th span:first-child { font-size: 0.62rem; }
+  .reservation-page .week-calendar th span:first-child { font-size: 0.56rem; }
   :is(.reservation-page, .admin-page) .week-calendar td { height: 38px; }
   .reservation-page .calendar-slot { min-height: 38px; font-size: 1.05rem; }
   .admin-page .week-calendar tbody th { font-size: 0.6rem; }
