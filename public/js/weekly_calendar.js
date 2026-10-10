@@ -63,7 +63,7 @@ class WeeklyCalendar {
       if (weekday === 6) th.className = 'is-saturday';
       const day = documentRoot.createElement('span');
       const week = documentRoot.createElement('span');
-      day.textContent = `${Number(date.slice(5, 7))} / ${Number(date.slice(8))}`;
+      day.textContent = `${Number(date.slice(5, 7))}/${Number(date.slice(8))}`;
       week.textContent = '日月火水木金土'[weekday];
       th.append(day, week);
       header.append(th);

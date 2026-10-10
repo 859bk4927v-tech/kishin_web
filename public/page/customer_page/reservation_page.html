@@ -108,16 +108,13 @@
         <form id="bookingForm" class="booking-form">
           <div class="form-field">
             <label for="menu"><span data-app-ja="form.menuLabel">施術メニュー</span> <span class="required" data-app-ja="form.required">必須</span></label>
-            <select id="menu" name="menu" required aria-describedby="menuSummary">
+            <select id="menu" name="menu" required>
               <option value="" data-app-ja="form.chooseMenu">メニューを選択してください</option>
             </select>
-            <p id="menuSummary" class="field-help" aria-live="polite" hidden></p>
           </div>
 
           <fieldset class="calendar-field">
             <legend>希望日時を選択 <span class="required">必須</span></legend>
-            <p id="calendarHelp" class="field-help">メニューを選び、カレンダーの「○」をタップしてください。</p>
-            <p id="dateHelp" class="field-help" data-app-ja="form.dateHelp">予約可能な日付を選択してください。</p>
             <label class="calendar-time-filter" for="eveningOnly">
               <input id="eveningOnly" type="checkbox" aria-controls="bookingCalendar" />
               <span>18 : 00以降のみ表示</span>
@@ -128,10 +125,10 @@
               <button type="button" id="bookingNext" class="btn btn-outline" disabled>次の一週間</button>
             </div>
             <p class="calendar-scroll-hint">カレンダーを左右にスクロールすると、ほかの日付を確認できます。</p>
-            <p class="calendar-legend">○ 予約可能 × 受付不可 ✓ 選択中</p>
+            <p id="calendarLegend" class="calendar-legend">○ 予約可能 × 受付不可 ✓ 選択中</p>
             <p id="slotMessage" class="field-help" role="status" aria-live="polite"></p>
             <button type="button" id="bookingCalendarRetry" class="btn btn-outline" hidden>再読み込み</button>
-            <div id="bookingCalendar" class="calendar-scroll" role="region" aria-label="予約日時カレンダー" aria-describedby="calendarHelp" tabindex="0"></div>
+            <div id="bookingCalendar" class="calendar-scroll" role="region" aria-label="予約日時カレンダー" aria-describedby="calendarLegend" tabindex="0"></div>
             <p id="selectedDateTime" class="calendar-selection" role="status" aria-live="polite">日時を選択してください。</p>
             <input id="bookingDate" name="date" type="hidden" />
             <input id="bookingTime" name="time" type="hidden" />

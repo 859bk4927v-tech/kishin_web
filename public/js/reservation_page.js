@@ -88,7 +88,6 @@ class ReservationPage {
       this.config = await ApiClient.request('/api/config');
       this.populateMenuOptions();
       this.weekStart = this.config.minDate;
-      this.document.getElementById('dateHelp').textContent = appJa.text('booking.dateHelp', { daysAhead: this.config.daysAhead });
       await this.loadSlots();
     } catch (error) {
       this.config = null;
@@ -124,7 +123,6 @@ class ReservationPage {
     this.calendarRetry.hidden = true;
     this.calendar.setAttribute("aria-busy", "false");
     if (!this.config) return;
-    this.updateMenuSummary();
     this.renderCalendar();
     if (!this.menu.value) {
       this.slotMessage.textContent = '先に施術メニューを選択してください。';
@@ -158,14 +156,6 @@ class ReservationPage {
   visibleTimes() {
     const duration = this.config.menus[this.menu.value]?.duration || 0;
     return WeeklyCalendar.times(this.config.schedule, false, duration).filter(time => !this.eveningOnly?.checked || time >= '18:00');
-  }
-
-  updateMenuSummary() {
-    const summary = this.document.getElementById('menuSummary');
-    if (!summary) return;
-    const menu = this.config.menus[this.menu.value];
-    summary.hidden = !menu;
-    summary.textContent = appJa.format(menu ? `所要時間 : ${menu.duration}分 / 料金 : ¥${menu.price.toLocaleString('ja-JP')}(税込)` : '');
   }
 
   changeTimeFilter() {
@@ -308,7 +298,6 @@ class ReservationPage {
     this.clearSelection();
     this.available = new Map();
     if (this.config) {
-      this.updateMenuSummary();
       this.renderCalendar();
     }
     this.slotMessage.textContent = '先に施術メニューを選択してください。';

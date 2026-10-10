@@ -1524,6 +1524,25 @@ site-footer {
   .calendar-scroll-hint { display: block; font-size: 0.8rem; color: var(--ink-soft); margin-bottom: 10px; }
 }
 
+@media (max-width: 860px) {
+  .reservation-page .week-calendar { min-width: 0; font-size: 0.75rem; }
+  .reservation-page .week-calendar th:first-child { width: 46px; }
+  .reservation-page .week-calendar th { padding: 8px 1px; }
+  .reservation-page .week-calendar th:not(:first-child) { white-space: nowrap; }
+  .reservation-page .week-calendar th span:first-child { font-size: 0.68rem; }
+  .reservation-page .week-calendar th span:last-child { font-size: 0.75rem; }
+  .reservation-page .week-calendar td { height: 42px; }
+  .reservation-page .calendar-slot { min-height: 42px; font-size: 1.2rem; }
+  .reservation-page .calendar-scroll-hint { display: none; }
+}
+
+@media (max-width: 380px) {
+  .reservation-page .week-calendar th:first-child { width: 40px; }
+  .reservation-page .week-calendar th span:first-child { font-size: 0.62rem; }
+  .reservation-page .week-calendar td { height: 38px; }
+  .reservation-page .calendar-slot { min-height: 38px; font-size: 1.05rem; }
+}
+
 @media (max-width: 360px) {
   .global-nav a { font-size: 0.8rem; }
   .site-header .brand-name { font-size: 0.82rem; }
