@@ -1469,6 +1469,8 @@ site-footer {
 }
 
 .calendar-booking:hover { background: #cfe0d7; }
+.calendar-booking-time,
+.calendar-booking-name { display: block; }
 .booking-start .calendar-booking { border-top: 3px solid var(--green-700); font-weight: 700; }
 .booking-continuation .calendar-booking { border-left: 3px solid var(--green-700); }
 .calendar-block {
@@ -1521,26 +1523,32 @@ site-footer {
 
 .calendar-scroll-hint { display: none; }
 @media (max-width: 860px) {
-  .calendar-scroll-hint { display: block; font-size: 0.8rem; color: var(--ink-soft); margin-bottom: 10px; }
-}
-
-@media (max-width: 860px) {
-  .reservation-page .week-calendar { min-width: 0; font-size: 0.75rem; }
-  .reservation-page .week-calendar th:first-child { width: 46px; }
-  .reservation-page .week-calendar th { padding: 8px 1px; }
-  .reservation-page .week-calendar th:not(:first-child) { white-space: nowrap; }
-  .reservation-page .week-calendar th span:first-child { font-size: 0.68rem; }
-  .reservation-page .week-calendar th span:last-child { font-size: 0.75rem; }
-  .reservation-page .week-calendar td { height: 42px; }
+  :is(.reservation-page, .admin-page) .week-calendar { min-width: 0; font-size: 0.75rem; }
+  :is(.reservation-page, .admin-page) .week-calendar th:first-child { width: 46px; }
+  :is(.reservation-page, .admin-page) .week-calendar th { padding: 8px 1px; }
+  :is(.reservation-page, .admin-page) .week-calendar th:not(:first-child) { white-space: nowrap; }
+  :is(.reservation-page, .admin-page) .week-calendar th span:first-child { font-size: 0.68rem; }
+  :is(.reservation-page, .admin-page) .week-calendar th span:last-child { font-size: 0.75rem; }
+  :is(.reservation-page, .admin-page) .week-calendar td { height: 42px; }
   .reservation-page .calendar-slot { min-height: 42px; font-size: 1.2rem; }
-  .reservation-page .calendar-scroll-hint { display: none; }
+  .admin-page .week-calendar tbody th { white-space: nowrap; font-size: 0.65rem; }
+  .admin-page .calendar-booking,
+  .admin-page .calendar-block { min-height: 48px; padding: 4px 1px; font-size: 0.68rem; overflow-wrap: anywhere; }
+  .admin-page .calendar-booking-time { display: none; }
+  .admin-page .calendar-booking-name {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
 }
 
 @media (max-width: 380px) {
-  .reservation-page .week-calendar th:first-child { width: 40px; }
-  .reservation-page .week-calendar th span:first-child { font-size: 0.62rem; }
-  .reservation-page .week-calendar td { height: 38px; }
+  :is(.reservation-page, .admin-page) .week-calendar th:first-child { width: 40px; }
+  :is(.reservation-page, .admin-page) .week-calendar th span:first-child { font-size: 0.62rem; }
+  :is(.reservation-page, .admin-page) .week-calendar td { height: 38px; }
   .reservation-page .calendar-slot { min-height: 38px; font-size: 1.05rem; }
+  .admin-page .week-calendar tbody th { font-size: 0.6rem; }
 }
 
 @media (max-width: 360px) {

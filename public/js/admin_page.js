@@ -174,7 +174,14 @@ class AdminPage {
           cell.textContent = closed ? '休' : '—';
           return;
         }
-        const button = this.createButton(`${booking.startTime}~${booking.endTime}\n${booking.customerName}`, 'calendar-booking', () => this.openBooking(booking));
+        const button = this.createButton('', 'calendar-booking', () => this.openBooking(booking));
+        const timeLabel = this.document.createElement('span');
+        timeLabel.className = 'calendar-booking-time';
+        timeLabel.textContent = WeeklyCalendar.displayText(`${booking.startTime}~${booking.endTime}`);
+        const nameLabel = this.document.createElement('span');
+        nameLabel.className = 'calendar-booking-name';
+        nameLabel.textContent = booking.customerName;
+        button.append(timeLabel, nameLabel);
         button.setAttribute('aria-label', WeeklyCalendar.displayText(`${WeeklyCalendar.dateLabel(date)} ${booking.startTime}~${booking.endTime} ${booking.customerName} 予約情報を開く`));
         cell.className = time === booking.startTime ? 'booking-start' : 'booking-continuation';
         cell.append(button);
