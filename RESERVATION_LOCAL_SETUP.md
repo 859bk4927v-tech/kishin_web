@@ -101,7 +101,49 @@ LINE_OWNER_USER_ID=院長のLINEユーザーID
 
 ## LINEからの予約について
 
-現時点で実装済みなのは、Web予約後に院長へLINE通知する機能です。LINEのトーク上で予約を受け付ける機能はまだありません。後からWebhookを追加し、Web予約とLINE予約が同じD1の空き枠確認・予約作成処理を使う設計にします。Webhookを公開する際は署名検証を必ず実装してください。
+LINEミニアプリ内で予約画面を開き、予約時にLIFF SDKの `getIDToken()` で取得したIDトークンを送信します。サーバーはLINEの `POST https://api.line.me/oauth2/v2.1/verify` にトークンと設定済みのチャネルIDを送り、本人確認が成功した場合だけ `bookings.line_user_id` にユーザーIDを保存します。IDトークンそのものはDB・予約完了画面・ログに保存しません。
+
+- `wrangler.jsonc` の `vars.LINE_MINIAPP_CHANNEL_ID` は、**本番用ミニアプリのチャネルID** `2011966875` です。秘密情報ではありません。LIFF ID全体やMessaging APIのチャネルIDとは異なります。
+- フロント側のLIFF IDは `2011966875-s5Cau1Zz` です。開発用・審査用へ切り替える場合も、フロント側のLIFF IDとサーバー側のチャネルIDを両方そろえてください。クライアントが送ったチャネルIDは信用しません。
+- 通常のブラウザからの予約はIDトークンなしで従来どおり受け付けます。トークンを送った場合、検証失敗時に通常予約へ自動的に切り替えることはありません。
+- 同じ予約の再送信で、別のLINEアカウントにひも付け直すことはありません。
+- 院長への既存LINE通知は継続します。新規のLINE予約では、予約保存後に患者さま本人へ日時・メニュー・予約番号も送信します。自動メール送信は未実装です。
+
+### 患者さま向けLINE通知の送信モジュール
+
+`src/patient_line_notifier.js` の `PatientLineNotifier.sendAndRecord(db, bookingId, env)` に、保存済み予約のIDを渡します。本人確認済みの `line_user_id` を送信先とし、既存の `LINE_CHANNEL_ACCESS_TOKEN` で日時・メニュー・予約番号を送ります。院長用の送信先や通知状態には変更を加えません。通常のWeb予約（LINEユーザーIDなし）は `skipped` になります。
+
+予約APIは新規予約の保存・本人情報の照合・確定状態の確認が成功した後、院長向け通知に続けてこのモジュールを呼び出します。それぞれの通知失敗は独立して処理し、保存済みの予約は成功として返します。LINEユーザーIDなしのWeb予約では患者さま向け通知を呼び出しません。同じ予約リクエストの再送時は、保存済み予約と通知状態を返し、通知を再送しません。予約競合・キャンセル済み予約・別のLINEアカウントからの再送も通知対象になりません。
+
+予約APIの `notificationStatus` は従来どおり院長向けです。患者さま向けには別の `patientLineNotificationStatus` を返します。通常のWeb予約は `skipped` です。予約完了画面の既存表示は変更しておらず、いずれの通知状態でも患者さまへの到達や既読を保証する表示は追加していません。自動メール送信も未実装です。
+
+使用前に `0004_add_patient_line_notification.sql` を適用します。追加する5列は患者さま向けの通知状態・エラー・再送キー・キー作成日時・送信内容です。既存予約と院長向け通知の値は保持します。最初の通信より前に送信先・本文・キーをDBに保存することで、並行呼び出しや通信障害後の再試行でも同じ内容とキーを使います。24時間を過ぎたキーは作り直さず送信を止めます。
+
+戻り値は `{ status, error }` です。`sent` はLINE APIが受理した状態で、実際の配信・既読を保証しません。`failed` は通信・保存の失敗、`not_configured` はトークン未設定、`rejected` はLINEの400番台エラーです（受理済みを示すヘッダー付き409は `sent`）。`rejected` と `sent` は再送しません。`failed` の再試行は同じ関数を呼び出しますが、自動再試行や予約変更通知は実装していません。
+
+公式アカウントとミニアプリは同じプロバイダーに置き、テスト用LINEで公式アカウントを友だち追加しておきます。重複防止は [LINE公式の再試行仕様](https://developers.line.biz/ja/docs/messaging-api/retrying-api-request/) に従います。
+
+### 既存サイトにこの変更を反映する順番
+
+まずローカルで追加マイグレーションとテストを実行します。既存予約を削除する操作はありません。
+
+```bash
+npm run db:migrate:local
+npm run build:static
+npm test
+npm run check:static
+```
+
+本番へ反映するときは、**コードのデプロイより先に** `0003_add_booking_line_user_id.sql` と `0004_add_patient_line_notification.sql` を本番D1へ適用する必要があります。通常のWeb予約も `0003` の列を使い、LINE予約の患者さま向け通知は `0004` の列を使います。本番DBをバックアップしてから、次の順番で実行してください。
+
+```bash
+NODE_EXTRA_CA_CERTS=/etc/ssl/cert.pem npm run db:migrate:remote
+NODE_EXTRA_CA_CERTS=/etc/ssl/cert.pem npm run deploy
+```
+
+`0003` では `line_user_id TEXT NOT NULL DEFAULT ''` の1列を追加し、既存予約は空欄のまま保持します。上記のマイグレーションコマンドは未適用のファイルすべてを処理するため、`0004` の患者さま向け通知用5列も追加します。このドキュメントの更新や `npm test` だけでは本番DBには反映されません。
+
+本番用LIFF URLは `https://miniapp.line.me/2011966875-s5Cau1Zz` です。LINE Developersの本番用エンドポイントURLを `https://yomon-harikyu.com/page/customer_page/reservation_page` に設定してください。通常のWeb予約URLはそのまま使えます。公開サイトを接続先にして予約を確定すると本番DBへの登録と、設定・送信条件に応じて院長および患者さまへの通知が発生するため、自動テストではメモリ内DBと通信の代替処理のみを使います。ローカルでも実際のLINEトークンが設定されていれば通知を送るため、テスト用の設定を使ってください。
 
 ## データと本番利用について
 

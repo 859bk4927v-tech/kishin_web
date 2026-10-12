@@ -241,9 +241,9 @@ export class BookingService {
     const inserted = await db.prepare(`
       INSERT INTO bookings (
         id, booking_number, idempotency_key, start_at, end_at, menu,
-        customer_name, phone, email, status, notification_status, created_at, updated_at
+        customer_name, phone, email, line_user_id, status, notification_status, created_at, updated_at
       )
-      SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', 'pending', ?, ?
+      SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', 'pending', ?, ?
       WHERE NOT EXISTS (
         SELECT 1 FROM bookings
         WHERE status = 'confirmed' AND start_at < ? AND end_at > ?
@@ -263,6 +263,7 @@ export class BookingService {
       booking.name,
       booking.phone,
       booking.email,
+      booking.lineUserId || '',
       booking.createdAt,
       booking.createdAt,
       this.addMinutes(booking.endAt, BOOKING_BUFFER_MINUTES),

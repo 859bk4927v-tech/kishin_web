@@ -79,3 +79,85 @@ test('repeated submit events while saving send only one booking request', async 
   assert.equal(navigations, 1);
   assert.equal(page.form.inert, false);
 });
+
+test('LINE booking waits for identity, includes the token only in the POST body and prevents double submission', async () => {
+  let resolveIdentity;
+  let requests = 0;
+  let requestBody;
+  const sandbox = context(async (path, options) => {
+    requests++;
+    assert.equal(path, '/api/bookings');
+    requestBody = JSON.parse(options.body);
+    return { ok: true, json: async () => ({ booking: {
+      bookingNumber: 'YOM-LINE', customerName: 'テスト', date: '2099-01-02', startTime: '10:00', endTime: '11:20', menuName: '初診'
+    }, notificationStatus: 'sent' }) };
+  });
+  let receipt;
+  let destination;
+  sandbox.window = {
+    getLineIdTokenForBooking: () => new Promise(resolve => { resolveIdentity = resolve; }),
+    sessionStorage: { setItem(key, value) { receipt = value; } },
+    location: { replace(value) { destination = value; } }
+  };
+  load(sandbox, 'weekly_calendar.js', 'api_client.js', 'booking_receipt.js', 'reservation_page.js');
+  const page = vm.runInContext('Object.create(ReservationPage.prototype)', sandbox);
+  Object.assign(page, {
+    form: { reportValidity: () => true }, date: { value: '2099-01-02' }, time: { value: '10:00' },
+    submitButton: {}, createBookingRequest: () => ({ menu: 'first_visit', turnstileToken: 'turnstile-test' })
+  });
+  const pending = page.submit({ preventDefault() {} });
+  await page.submit({ preventDefault() {} });
+  assert.equal(requests, 0);
+  assert.equal(page.form.inert, true);
+  resolveIdentity('test.header.signature');
+  await pending;
+  assert.equal(requests, 1);
+  assert.deepEqual(requestBody, { menu: 'first_visit', turnstileToken: 'turnstile-test', lineIdToken: 'test.header.signature' });
+  assert.equal(receipt.includes('test.header.signature'), false);
+  assert.equal(destination, 'reservation_complete_page');
+});
+
+test('failed LINE identity does not submit a reservation and restores the form', async () => {
+  let requests = 0;
+  const sandbox = context(async () => { requests++; });
+  sandbox.window.getLineIdTokenForBooking = async () => { throw new Error('LINEの予約画面を開き直してください。'); };
+  load(sandbox, 'weekly_calendar.js', 'api_client.js', 'booking_receipt.js', 'reservation_page.js');
+  const page = vm.runInContext('Object.create(ReservationPage.prototype)', sandbox);
+  let notice;
+  Object.assign(page, {
+    form: { reportValidity: () => true }, date: { value: '2099-01-02' }, time: { value: '10:00' },
+    submitButton: {}, notice: { scrollIntoView() {} }, showNotice(message) { notice = message; }
+  });
+  await page.submit({ preventDefault() {} });
+  assert.equal(requests, 0);
+  assert.match(notice, /LINEの予約画面/);
+  assert.equal(page.form.inert, false);
+  assert.equal(page.submitButton.disabled, false);
+});
+
+test('LIFF identity helper waits for initialization, retrieves a fresh token and skips ordinary browsers', async () => {
+  let resolveInit;
+  let token = 'first.header.signature';
+  const sandbox = context(() => {});
+  sandbox.window.liff = {
+    isInClient: () => true, isLoggedIn: () => true,
+    init: ({ liffId }) => {
+      // The browser's LIFF app and the server's token audience must be deployed together.
+      const config = JSON.parse(fs.readFileSync(new URL('../wrangler.jsonc', import.meta.url), 'utf8'));
+      assert.match(liffId, /^\d+-[A-Za-z0-9]+$/);
+      assert.equal(liffId.split('-')[0], config.vars.LINE_MINIAPP_CHANNEL_ID);
+      return new Promise(resolve => { resolveInit = resolve; });
+    }, getIDToken: () => token
+  };
+  load(sandbox, 'line_miniapp.js');
+  const pending = vm.runInContext('getLineIdTokenForBooking()', sandbox);
+  resolveInit();
+  assert.equal(await pending, token);
+  token = 'second.header.signature';
+  assert.equal(await vm.runInContext('getLineIdTokenForBooking()', sandbox), token);
+  sandbox.window.liff.isInClient = () => false;
+  assert.equal(await vm.runInContext('getLineIdTokenForBooking()', sandbox), '');
+  sandbox.window.liff.isInClient = () => true;
+  token = null;
+  await assert.rejects(vm.runInContext('getLineIdTokenForBooking()', sandbox), /本人確認/);
+});

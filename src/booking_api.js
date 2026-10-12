@@ -1,5 +1,7 @@
 import { BookingService, BOOKABLE_MENUS, BOOKING_SCHEDULE, CLOSED_WEEKDAYS } from "./booking_service.js";
 import { LineNotifier } from "./line_notifier.js";
+import { PatientLineNotifier } from "./patient_line_notifier.js";
+import { LineIdentityVerifier, LineIdentityError } from "./line_identity_verifier.js";
 
 const JSON_HEADERS = {
   "Content-Type": "application/json; charset=utf-8",
@@ -121,6 +123,15 @@ export class BookingApi {
       return await LineNotifier.sendAndRecord(db, bookingId, env, eventLabel, resetRetry);
     } catch {
       // The reservation is already saved; notification failures must not look like a failed booking.
+      return { status: "failed" };
+    }
+  }
+
+  static async notifyPatientBooking(db, bookingId, env) {
+    try {
+      return await PatientLineNotifier.sendAndRecord(db, bookingId, env);
+    } catch {
+      // Keep confirmation successful even if the patient notifier unexpectedly throws.
       return { status: "failed" };
     }
   }
@@ -253,6 +264,15 @@ export class BookingApi {
     const turnstileError = await this.verifyTurnstile(request, env, body.turnstileToken);
     if (turnstileError) return turnstileError;
 
+    let lineUserId;
+    try {
+      lineUserId = await LineIdentityVerifier.verify(body.lineIdToken, env.LINE_MINIAPP_CHANNEL_ID);
+    } catch (error) {
+      return error instanceof LineIdentityError
+        ? this.json(error.status, { error: error.message })
+        : this.json(503, { error: "LINEの本人確認ができません。時間をおいて再度お試しください。" });
+    }
+
     const datePart = selectedDate.replaceAll("-", "");
     const random = Array.from(crypto.getRandomValues(new Uint8Array(2)), (byte) => byte.toString(16).padStart(2, "0")).join("").toUpperCase();
     const booking = {
@@ -265,12 +285,16 @@ export class BookingApi {
       name,
       phone,
       email,
+      lineUserId,
       createdAt: BookingService.isoLocal(new Date())
     };
 
     try {
       const result = await BookingService.createBooking(env.BOOKING_DB, booking);
       if (!result.row) return this.json(409, { error: "申し訳ありません。その時間は予約済みです。別の時間をお選びください。" });
+      if ((result.row.line_user_id || "") !== lineUserId) {
+        return this.json(409, { error: "予約時のLINEアカウントと一致しません。元の予約画面から再度お試しください。" });
+      }
       if (result.row.status !== "confirmed") {
         return this.json(409, { error: "この予約はキャンセル済みです。ページを再読み込みして、新しくご予約ください。" });
       }
@@ -279,15 +303,22 @@ export class BookingApi {
           ok: true,
           bookingNumber: result.row.booking_number,
           booking: this.bookingReceipt(result.row),
-          notificationStatus: result.row.notification_status
+          notificationStatus: result.row.notification_status,
+          patientLineNotificationStatus: result.row.line_user_id
+            ? result.row.patient_line_notification_status || "not_requested"
+            : "skipped"
         });
       }
       const notification = await this.notifyBooking(env.BOOKING_DB, booking.id, env);
+      const patientNotification = result.row.line_user_id
+        ? await this.notifyPatientBooking(env.BOOKING_DB, result.row.id, env)
+        : { status: "skipped" };
       return this.json(201, {
         ok: true,
         bookingNumber: booking.bookingNumber,
         booking: this.bookingReceipt(result.row),
-        notificationStatus: notification.status
+        notificationStatus: notification.status,
+        patientLineNotificationStatus: patientNotification.status
       });
     } catch {
       return this.json(500, { error: "予約を保存できませんでした。時間をおいて再度お試しください。" });

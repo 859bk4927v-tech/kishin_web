@@ -5,10 +5,11 @@ import { DatabaseSync } from 'node:sqlite';
 import { BookingService as Service } from '../src/booking_service.js';
 import { BookingApi } from '../src/booking_api.js';
 import { LineNotifier } from '../src/line_notifier.js';
+import { PatientLineNotifier } from '../src/patient_line_notifier.js';
 
 function database(t) {
   const sqlite = new DatabaseSync(':memory:');
-  for (const name of ['0001_create_bookings.sql', '0002_create_blocked_periods.sql']) {
+  for (const name of fs.readdirSync(new URL('../migrations/', import.meta.url)).filter(name => name.endsWith('.sql')).sort()) {
     sqlite.exec(fs.readFileSync(new URL(`../migrations/${name}`, import.meta.url), 'utf8'));
   }
   t.after(() => sqlite.close());
@@ -43,6 +44,243 @@ function mockTurnstile(t, result = { success: true, hostname: 'example.test' }) 
     return new Response(JSON.stringify(result), { status: 200, headers: { 'Content-Type': 'application/json' } });
   });
 }
+
+function lineBookingInput() {
+  const date = Array.from({ length: 7 }, (_, i) => Service.addDays(Service.todayJst(), i + 1))
+    .find(value => new Date(`${value}T00:00:00Z`).getUTCDay() !== 5);
+  return {
+    idempotencyKey: 'line-booking-test-key', menu: 'followup_60', date, time: '10:00',
+    name: 'LINE予約テスト', phone: '09000000000', email: '', website: '',
+    turnstileToken: 'test-turnstile-token', lineIdToken: 'test.header.signature'
+  };
+}
+
+const lineRequest = body => new Request('https://example.test/api/bookings', {
+  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+});
+
+function mockBookingVerification(t, identityResponse) {
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    if (url === 'https://challenges.cloudflare.com/turnstile/v0/siteverify') {
+      return Response.json({ success: true, hostname: 'example.test' });
+    }
+    assert.equal(url, 'https://api.line.me/oauth2/v2.1/verify');
+    assert.equal(new URLSearchParams(options.body).get('client_id'), '2011966873');
+    return identityResponse();
+  });
+}
+
+function patientNotificationFlow(t, options = {}) {
+  const db = database(t);
+  const userId = 'U' + 'a'.repeat(32);
+  const ownerId = 'U' + 'b'.repeat(32);
+  const pushes = [];
+  t.mock.method(globalThis, 'fetch', async (url, request) => {
+    if (url === 'https://challenges.cloudflare.com/turnstile/v0/siteverify') {
+      return Response.json({ success: true, hostname: 'example.test' });
+    }
+    if (url === 'https://api.line.me/oauth2/v2.1/verify') {
+      return Response.json({ iss: 'https://access.line.me', aud: '2011966873', sub: userId,
+        iat: Math.floor(Date.now() / 1000) - 30, exp: Math.floor(Date.now() / 1000) + 3600 });
+    }
+    if (url !== 'https://api.line.me/v2/bot/message/push') throw new Error('Unexpected external request');
+    const payload = JSON.parse(request.body);
+    const rows = await db.prepare('SELECT * FROM bookings WHERE status = ?').bind('confirmed').all();
+    pushes.push({ payload, headers: request.headers, savedBookings: rows.results });
+    if (payload.to === userId && options.patientThrows) throw new Error('Sensitive network details');
+    return new Response(null, { status: payload.to === userId
+      ? options.patientStatus || 200 : options.ownerStatus || 200 });
+  });
+  return {
+    db, userId, ownerId, pushes,
+    env: { BOOKING_DB: db, TURNSTILE_SECRET: 'test-turnstile-secret', LINE_MINIAPP_CHANNEL_ID: '2011966873',
+      LINE_CHANNEL_ACCESS_TOKEN: 'test-line-secret', LINE_OWNER_USER_ID: ownerId }
+  };
+}
+
+test('new verified booking notifies owner and saved patient after persistence, while repeats and conflicts send nothing', async t => {
+  const f = patientNotificationFlow(t);
+  const input = { ...lineBookingInput(), lineUserId: 'U' + 'f'.repeat(32) };
+  const response = await BookingApi.createBooking(lineRequest(input), f.env);
+  assert.equal(response.status, 201);
+  const receipt = await response.json();
+  assert.equal(receipt.notificationStatus, 'sent');
+  assert.equal(receipt.patientLineNotificationStatus, 'sent');
+  assert.deepEqual(f.pushes.map(push => push.payload.to), [f.ownerId, f.userId]);
+  assert.ok(f.pushes.every(push => push.savedBookings.length === 1));
+  const patientPush = f.pushes[1];
+  const saved = patientPush.savedBookings[0];
+  assert.equal(saved.line_user_id, f.userId);
+  assert.equal(saved.patient_line_retry_key, patientPush.headers['X-Line-Retry-Key']);
+  assert.match(patientPush.payload.messages[0].text, new RegExp(saved.booking_number));
+  assert.match(patientPush.payload.messages[0].text, /10:00/);
+  assert.equal(JSON.stringify(receipt).includes(f.userId), false);
+  assert.equal(JSON.stringify(receipt).includes(input.lineIdToken), false);
+  const repeated = await BookingApi.createBooking(lineRequest(input), f.env);
+  assert.equal(repeated.status, 200);
+  assert.equal((await repeated.json()).patientLineNotificationStatus, 'sent');
+  assert.equal((await BookingApi.createBooking(lineRequest({ ...input, idempotencyKey: 'conflicting-booking-key' }), f.env)).status, 409);
+  await Service.cancelBooking(f.db, saved.id);
+  assert.equal((await BookingApi.createBooking(lineRequest(input), f.env)).status, 409);
+  assert.equal(f.pushes.length, 2);
+});
+
+for (const options of [{ patientThrows: true }, { patientStatus: 500 }, { patientStatus: 400 }]) {
+  test(`patient notification failure ${JSON.stringify(options)} preserves confirmation and does not resend on booking retry`, async t => {
+    const f = patientNotificationFlow(t, options);
+    const input = lineBookingInput();
+    const response = await BookingApi.createBooking(lineRequest(input), f.env);
+    assert.equal(response.status, 201);
+    const receipt = await response.json();
+    const expected = options.patientStatus === 400 ? 'rejected' : 'failed';
+    assert.equal(receipt.ok, true);
+    assert.equal(receipt.notificationStatus, 'sent');
+    assert.equal(receipt.patientLineNotificationStatus, expected);
+    assert.equal(JSON.stringify(receipt).includes('Sensitive'), false);
+    const saved = await f.db.prepare('SELECT * FROM bookings WHERE idempotency_key = ?').bind(input.idempotencyKey).first();
+    assert.equal(saved.status, 'confirmed');
+    assert.equal(saved.notification_status, 'sent');
+    assert.equal(saved.patient_line_notification_status, expected);
+    const repeat = await BookingApi.createBooking(lineRequest(input), f.env);
+    assert.equal(repeat.status, 200);
+    assert.equal((await repeat.json()).patientLineNotificationStatus, expected);
+    assert.equal(f.pushes.length, 2);
+  });
+}
+
+test('patient notification proceeds when owner notification unexpectedly throws', async t => {
+  const f = patientNotificationFlow(t);
+  t.mock.method(LineNotifier, 'sendAndRecord', async () => { throw new Error('Owner notifier unavailable'); });
+  const response = await BookingApi.createBooking(lineRequest(lineBookingInput()), f.env);
+  assert.equal(response.status, 201);
+  const receipt = await response.json();
+  assert.equal(receipt.notificationStatus, 'failed');
+  assert.equal(receipt.patientLineNotificationStatus, 'sent');
+  assert.deepEqual(f.pushes.map(push => push.payload.to), [f.userId]);
+});
+
+test('an unexpected patient notifier exception cannot turn a saved booking into an error', async t => {
+  const f = patientNotificationFlow(t);
+  t.mock.method(PatientLineNotifier, 'sendAndRecord', async () => { throw new Error('Patient notifier unavailable'); });
+  const input = lineBookingInput();
+  const response = await BookingApi.createBooking(lineRequest(input), f.env);
+  assert.equal(response.status, 201);
+  const receipt = await response.json();
+  assert.equal(receipt.notificationStatus, 'sent');
+  assert.equal(receipt.patientLineNotificationStatus, 'failed');
+  assert.deepEqual(f.pushes.map(push => push.payload.to), [f.ownerId]);
+  const row = await f.db.prepare('SELECT * FROM bookings WHERE idempotency_key = ?').bind(input.idempotencyKey).first();
+  assert.equal(row.status, 'confirmed');
+});
+
+test('ordinary web bookings notify only the owner and never invoke the patient notifier', async t => {
+  const f = patientNotificationFlow(t);
+  const notifier = t.mock.method(PatientLineNotifier, 'sendAndRecord', async () => { throw new Error('Must not call'); });
+  const input = { ...lineBookingInput(), lineUserId: f.userId };
+  delete input.lineIdToken;
+  const response = await BookingApi.createBooking(lineRequest(input), f.env);
+  assert.equal(response.status, 201);
+  const receipt = await response.json();
+  assert.equal(receipt.notificationStatus, 'sent');
+  assert.equal(receipt.patientLineNotificationStatus, 'skipped');
+  const repeated = await BookingApi.createBooking(lineRequest(input), f.env);
+  assert.equal(repeated.status, 200);
+  assert.equal((await repeated.json()).patientLineNotificationStatus, 'skipped');
+  assert.equal(notifier.mock.callCount(), 0);
+  assert.deepEqual(f.pushes.map(push => push.payload.to), [f.ownerId]);
+});
+
+test('verified LINE bookings store only the trusted user ID, retry once and retain identity when rescheduled', async t => {
+  const db = database(t);
+  const input = { ...lineBookingInput(), lineUserId: 'U' + 'f'.repeat(32) };
+  const userId = 'U' + 'a'.repeat(32);
+  mockBookingVerification(t, () => Response.json({
+    iss: 'https://access.line.me', aud: '2011966873', sub: userId,
+    iat: Math.floor(Date.now() / 1000) - 30, exp: Math.floor(Date.now() / 1000) + 3600
+  }));
+  let notifications = 0;
+  t.mock.method(LineNotifier, 'sendAndRecord', async () => { notifications++; return { status: 'sent' }; });
+  const env = { BOOKING_DB: db, TURNSTILE_SECRET: 'test-turnstile-secret', LINE_MINIAPP_CHANNEL_ID: '2011966873' };
+  const response = await BookingApi.createBooking(lineRequest(input), env);
+  assert.equal(response.status, 201);
+  const receipt = await response.json();
+  assert.equal(JSON.stringify(receipt).includes(userId), false);
+  assert.equal(JSON.stringify(receipt).includes(input.lineIdToken), false);
+  let row = await db.prepare('SELECT * FROM bookings WHERE idempotency_key = ?').bind(input.idempotencyKey).first();
+  assert.equal(row.line_user_id, userId);
+  assert.equal(JSON.stringify(row).includes(input.lineIdToken), false);
+  assert.equal((await BookingApi.createBooking(lineRequest(input), env)).status, 200);
+  assert.equal(notifications, 1);
+  assert.equal((await Service.listBookings(db, input.date)).length, 1);
+  const { startAt, endAt } = Service.parseStart(input.date, '13:00', 60);
+  await Service.rescheduleBooking(db, row.id, startAt, endAt);
+  assert.equal((await Service.findBooking(db, row.id)).line_user_id, userId);
+  await Service.cancelBooking(db, row.id);
+  assert.equal((await Service.findBooking(db, row.id)).line_user_id, userId);
+});
+
+test('unverified client user IDs cannot associate an ordinary web booking with LINE', async t => {
+  const db = database(t);
+  mockTurnstile(t);
+  const input = { ...lineBookingInput(), lineUserId: 'U' + 'f'.repeat(32) };
+  delete input.lineIdToken;
+  const response = await BookingApi.createBooking(lineRequest(input), { BOOKING_DB: db, TURNSTILE_SECRET: 'test-turnstile-secret' });
+  assert.equal(response.status, 201);
+  const row = await db.prepare('SELECT * FROM bookings WHERE idempotency_key = ?').bind(input.idempotencyKey).first();
+  assert.equal(row.line_user_id, '');
+});
+
+test('failed LINE verification and unavailable LINE cannot access the booking database or send notifications', async t => {
+  const input = lineBookingInput();
+  let databaseCalls = 0;
+  const guardedDb = { prepare() { databaseCalls++; throw new Error('Database must not be touched'); } };
+  t.mock.method(LineNotifier, 'sendAndRecord', () => { throw new Error('Must not notify'); });
+  const patientNotifier = t.mock.method(PatientLineNotifier, 'sendAndRecord', () => { throw new Error('Must not notify'); });
+  for (const status of [400, 429, 500]) {
+    mockBookingVerification(t, () => Response.json({ error_description: input.lineIdToken }, { status }));
+    const response = await BookingApi.createBooking(lineRequest(input), {
+      BOOKING_DB: guardedDb, TURNSTILE_SECRET: 'test-turnstile-secret', LINE_MINIAPP_CHANNEL_ID: '2011966873'
+    });
+    assert.equal(response.status, status === 400 ? 401 : 503);
+    assert.equal((await response.text()).includes(input.lineIdToken), false);
+  }
+  assert.equal(databaseCalls, 0);
+  assert.equal(patientNotifier.mock.callCount(), 0);
+});
+
+test('missing LINE configuration rejects LINE bookings before any database access', async t => {
+  mockTurnstile(t);
+  const response = await BookingApi.createBooking(lineRequest(lineBookingInput()), {
+    BOOKING_DB: { prepare() { throw new Error('Database must not be touched'); } }, TURNSTILE_SECRET: 'test-turnstile-secret'
+  });
+  assert.equal(response.status, 503);
+  assert.match((await response.json()).error, /本人確認設定/);
+});
+
+test('a booking retry cannot replace its saved LINE user or return its receipt to another identity', async t => {
+  const db = database(t);
+  const input = lineBookingInput();
+  let userId = 'U' + 'a'.repeat(32);
+  const originalUser = userId;
+  mockBookingVerification(t, () => Response.json({
+    iss: 'https://access.line.me', aud: '2011966873', sub: userId,
+    iat: Math.floor(Date.now() / 1000) - 30, exp: Math.floor(Date.now() / 1000) + 3600
+  }));
+  let notifications = 0;
+  t.mock.method(LineNotifier, 'sendAndRecord', async () => { notifications++; return { status: 'sent' }; });
+  const env = { BOOKING_DB: db, TURNSTILE_SECRET: 'test-turnstile-secret', LINE_MINIAPP_CHANNEL_ID: '2011966873' };
+  assert.equal((await BookingApi.createBooking(lineRequest(input), env)).status, 201);
+  userId = 'U' + 'b'.repeat(32);
+  const wrongUser = await BookingApi.createBooking(lineRequest(input), env);
+  assert.equal(wrongUser.status, 409);
+  assert.equal((await wrongUser.text()).includes(input.name), false);
+  delete input.lineIdToken;
+  assert.equal((await BookingApi.createBooking(lineRequest(input), env)).status, 409);
+  const row = await db.prepare('SELECT * FROM bookings WHERE idempotency_key = ?').bind(input.idempotencyKey).first();
+  assert.equal(row.line_user_id, originalUser);
+  assert.equal(notifications, 1);
+  assert.equal((await Service.listBookings(db, input.date)).length, 1);
+});
 
 test('Friday is closed while Sunday accepts reservations through the API', async t => {
   const db = database(t);

@@ -28,6 +28,7 @@
   ],
   "vars": {
     "BOOKING_DAYS_AHEAD": "60",
-    "SITE_URL": "https://yomon-harikyu.com"
+    "SITE_URL": "https://yomon-harikyu.com",
+    "LINE_MINIAPP_CHANNEL_ID": "2011966875"
   }
 }

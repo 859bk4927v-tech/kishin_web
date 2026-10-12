@@ -252,12 +252,26 @@ class ReservationPage {
     this.form.inert = true;
     this.submitButton.textContent = appJa.text("booking.sending");
     try {
+      const lineIdToken =
+        typeof window.getLineIdTokenForBooking === "function"
+          ? await window.getLineIdTokenForBooking()
+          : "";
+
+      const bookingRequest = this.createBookingRequest();
+
+      // LINEからの予約の場合だけ追加します。
+      if (lineIdToken) {
+        bookingRequest.lineIdToken = lineIdToken;
+      }
+
       const result = await ApiClient.request("/api/bookings", {
         method: "POST",
-        body: JSON.stringify(this.createBookingRequest())
+        body: JSON.stringify(bookingRequest)
       });
+
       if (BookingReceipt.save(result)) {
-        window.location.replace('reservation_complete_page.html');
+        // Navigate directly to the canonical page so redirects cannot change the storage origin.
+        window.location.replace('reservation_complete_page');
         return;
       }
       this.showBookingResult(result);

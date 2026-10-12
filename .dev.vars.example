@@ -3,3 +3,6 @@ ADMIN_TOKEN=replace-with-a-long-random-secret
 LINE_CHANNEL_ACCESS_TOKEN=
 LINE_OWNER_USER_ID=
 TURNSTILE_SECRET=replace-with-your-turnstile-secret
+# LINE MINI App channel ID (not the LIFF ID or the Messaging API channel ID).
+# Match the published LIFF app used by public/js/line_miniapp.js.
+LINE_MINIAPP_CHANNEL_ID=2011966875

@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title data-app-ja="pageMeta.reservationTitle">Web予約|いわき市小名浜 よもん はりきゅう治療院</title>
-  <meta name="description" data-app-ja-attr="content:pageMeta.reservationDescription" content="いわき市小名浜、よもん はりきゅう治療院のWeb予約。営業時間は9 : 00~24 : 00、金曜休診。仕事帰りの時間も、メニューとカレンダーの空き日時を選んでご予約いただけます。" />
+  <meta name="description" data-app-ja-attr="content:pageMeta.reservationDescription"
+    content="いわき市小名浜、よもん はりきゅう治療院のWeb予約。営業時間は9 : 00~24 : 00、金曜休診。仕事帰りの時間も、メニューとカレンダーの空き日時を選んでご予約いただけます。" />
   <link rel="canonical" href="/page/customer_page/reservation_page" />
   <meta name="robots" content="index, follow, max-image-preview:large" />
   <meta property="og:type" content="website" />
@@ -59,10 +61,12 @@
   <link rel="icon" href="../../assets/yomon_mark.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&amp;display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&amp;display=swap"
+    rel="stylesheet" />
   <link rel="stylesheet" href="../../css/style.css" />
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
+
 <body class="reservation-page">
   <a class="skip-link" href="#main" data-app-ja="actions.skipToContent">本文へスキップ</a>
 
@@ -107,7 +111,8 @@
 
         <form id="bookingForm" class="booking-form">
           <div class="form-field">
-            <label for="menu"><span data-app-ja="form.menuLabel">施術メニュー</span> <span class="required" data-app-ja="form.required">必須</span></label>
+            <label for="menu"><span data-app-ja="form.menuLabel">施術メニュー</span> <span class="required"
+                data-app-ja="form.required">必須</span></label>
             <select id="menu" name="menu" required>
               <option value="" data-app-ja="form.chooseMenu">メニューを選択してください</option>
             </select>
@@ -128,7 +133,8 @@
             <p id="calendarLegend" class="calendar-legend">○ 予約可能 × 受付不可 ✓ 選択中</p>
             <p id="slotMessage" class="field-help" role="status" aria-live="polite"></p>
             <button type="button" id="bookingCalendarRetry" class="btn btn-outline" hidden>再読み込み</button>
-            <div id="bookingCalendar" class="calendar-scroll" role="region" aria-label="予約日時カレンダー" aria-describedby="calendarLegend" tabindex="0"></div>
+            <div id="bookingCalendar" class="calendar-scroll" role="region" aria-label="予約日時カレンダー"
+              aria-describedby="calendarLegend" tabindex="0"></div>
             <p id="selectedDateTime" class="calendar-selection" role="status" aria-live="polite">日時を選択してください。</p>
             <input id="bookingDate" name="date" type="hidden" />
             <input id="bookingTime" name="time" type="hidden" />
@@ -137,16 +143,21 @@
           <div class="form-divider" aria-hidden="true"></div>
 
           <div class="form-field">
-            <label for="customerName"><span data-app-ja="form.nameLabel">お名前</span> <span class="required" data-app-ja="form.required">必須</span></label>
+            <label for="customerName"><span data-app-ja="form.nameLabel">お名前</span> <span class="required"
+                data-app-ja="form.required">必須</span></label>
             <input id="customerName" name="name" type="text" autocomplete="name" maxlength="80" required />
           </div>
           <div class="form-field">
-            <label for="customerPhone"><span data-app-ja="form.phoneLabel">電話番号</span> <span class="required" data-app-ja="form.required">必須</span></label>
-            <input id="customerPhone" name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="30" placeholder="例 : 070-1234-5678" data-app-ja-attr="placeholder:form.phonePlaceholder" required />
+            <label for="customerPhone"><span data-app-ja="form.phoneLabel">電話番号</span> <span class="required"
+                data-app-ja="form.required">必須</span></label>
+            <input id="customerPhone" name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="30"
+              placeholder="例 : 070-1234-5678" data-app-ja-attr="placeholder:form.phonePlaceholder" required />
           </div>
           <div class="form-field">
-            <label for="customerEmail"><span data-app-ja="form.emailLabel">メールアドレス</span> <span class="optional" data-app-ja="form.optional">任意</span></label>
-            <input id="customerEmail" name="email" type="email" autocomplete="email" maxlength="254" aria-describedby="emailHelp" />
+            <label for="customerEmail"><span data-app-ja="form.emailLabel">メールアドレス</span> <span class="optional"
+                data-app-ja="form.optional">任意</span></label>
+            <input id="customerEmail" name="email" type="email" autocomplete="email" maxlength="254"
+              aria-describedby="emailHelp" />
             <p id="emailHelp" class="field-help" data-app-ja="form.emailHelp">ご連絡用の任意項目です。予約確認メールは自動送信されません。</p>
           </div>
 
@@ -156,7 +167,8 @@
 
           <div class="cf-turnstile" data-sitekey="0x4AAAAAAFSJWtla-JMx4Cpq" data-appearance="interaction-only"></div>
 
-          <label class="honeypot" aria-hidden="true"><span data-app-ja="form.honeypot">この欄は入力しないでください</span><input name="website" type="text" tabindex="-1" autocomplete="off" /></label>
+          <label class="honeypot" aria-hidden="true"><span data-app-ja="form.honeypot">この欄は入力しないでください</span><input
+              name="website" type="text" tabindex="-1" autocomplete="off" /></label>
           <button class="btn btn-primary btn-lg booking-submit" id="bookingSubmit" type="submit"></button>
         </form>
 
@@ -205,6 +217,9 @@
   <script src="../../js/weekly_calendar.js"></script>
   <script src="../../js/api_client.js"></script>
   <script src="../../js/booking_receipt.js"></script>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="../../js/line_miniapp.js"></script>
   <script src="../../js/reservation_page.js"></script>
 </body>
+
 </html>

@@ -39,7 +39,7 @@ test('successful submission stores the receipt and opens the completion page', a
   page.resetForm = () => { throw new Error('should navigate before clearing the form'); };
   page.loadConfig = () => { throw new Error('should navigate before reloading'); };
   await page.submit({ preventDefault() {} });
-  assert.equal(destination, 'reservation_complete_page.html');
+  assert.equal(destination, 'reservation_complete_page');
   assert.deepEqual(JSON.parse(saved.get('yomon.bookingReceipt')), { ...booking, notificationStatus: 'sent' });
 });
 
