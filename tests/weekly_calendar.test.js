@@ -110,7 +110,107 @@ test('evening filter shows late slots and clears a now-hidden selection', () => 
   assert.match(page.slotMessage.textContent, /18:00以降に空きはありません/);
   page.available.get('2099-01-05').add('22:30');
   page.updateAvailabilityMessage();
-  assert.match(page.slotMessage.textContent, /○/);
+  assert.equal(page.slotMessage.textContent, 'ご希望の日時をタップしてください。');
   page.eveningOnly.checked = false;
   assert.equal(page.visibleTimes().length, 28);
+});
+
+test('customer slots enforce the Japanese same-day cutoff and a stale selection cannot submit', async t => {
+  let now = Date.parse('2026-10-14T14:00:00+09:00');
+  t.mock.method(Date, 'now', () => now);
+  let requests = 0;
+  const page = reservationHarness(async () => { requests++; throw new Error('Should not submit'); });
+  assert.equal(page.isSlotWithinBookingWindow('2026-10-14', '16:30'), false);
+  assert.equal(page.isSlotWithinBookingWindow('2026-10-14', '17:00'), true);
+  now += 1;
+  assert.equal(page.isSlotWithinBookingWindow('2026-10-14', '17:00'), false);
+  assert.equal(page.isSlotWithinBookingWindow('2026-10-14', '17:30'), true);
+  assert.equal(page.isSlotWithinBookingWindow('2026-10-15', '09:00'), true);
+  let reloads = 0;
+  let notice = '';
+  page.showNotice = message => { notice = message; };
+  page.loadSlots = async () => { reloads++; page.clearSelection(); };
+  page.date.value = '2026-10-14'; page.time.value = '17:00';
+  page.form = { reportValidity: () => true };
+  page.submitButton = {};
+  await page.submit({ preventDefault() {} });
+  assert.equal(requests, 0);
+  assert.equal(reloads, 1);
+  assert.equal(page.time.value, '');
+  assert.equal(notice, 'booking.sameDayNotice');
+  assert.equal(page.form.inert, false);
+  page.selectSlot({}, '2026-10-14', '17:00');
+  assert.equal(reloads, 2);
+  assert.equal(page.time.value, '');
+  now = Date.parse('2026-10-15T08:00:00+09:00');
+  assert.equal(page.isSlotWithinBookingWindow('2026-10-15', '10:30'), false);
+  assert.equal(page.isSlotWithinBookingWindow('2026-10-15', '11:00'), true);
+});
+
+test('short-notice triangles open the contact dialog without selecting or submitting a reservation', t => {
+  let now = Date.parse('2026-10-14T14:00:00+09:00');
+  t.mock.method(Date, 'now', () => now);
+  const elements = new Map();
+  const element = () => ({ children: [], dataset: {}, attrs: {}, events: {},
+    append(child) { this.children.push(child); }, setAttribute(key,value) { this.attrs[key] = value; },
+    addEventListener(event,callback) { this.events[event] = callback; },
+    replaceChildren(child) { this.children = [child]; } });
+  const document = { createElement: element, getElementById(id) {
+    if (id === 'bookingForm') return null;
+    if (!elements.has(id)) elements.set(id, element());
+    return elements.get(id);
+  }};
+  const sandbox = vm.createContext({document,window:{},Date,Map,Set,appJa:{text:key=>key}});
+  vm.runInContext(fs.readFileSync(new URL('../public/js/weekly_calendar.js',import.meta.url),'utf8')+'\nthis.Calendar=WeeklyCalendar;',sandbox);
+  vm.runInContext(fs.readFileSync(new URL('../public/js/reservation_page.js',import.meta.url),'utf8')+'\nthis.Page=ReservationPage;',sandbox);
+  const cells = new Map();
+  sandbox.Calendar.createTable = (doc,dates,times,title,render) => {
+    cells.clear();
+    for (const date of dates) for (const time of times) {
+      const cell = element();render(cell,date,time);cells.set(date+' '+time,cell);
+    }
+    return element();
+  };
+  const page = Object.create(sandbox.Page.prototype);
+  Object.assign(page,{document,calendar:element(),weekStart:'2026-10-14',menu:{value:'first_visit'},
+    config:{minDate:'2026-10-14',maxDate:'2026-12-13',schedule:BOOKING_SCHEDULE,menus:{first_visit:{duration:80}}},
+    available:new Map([['2026-10-14',new Set(['17:00','17:30'])]]),
+    contactAvailable:new Map([['2026-10-14',new Set(['14:30','16:30'])]]),
+    date:{value:''},time:{value:''}});
+  const dialog = document.getElementById('bookingContactDialog');
+  let opened = 0;
+  dialog.showModal = () => { opened++;dialog.open=true; };
+  const buttonAt = time => cells.get('2026-10-14 '+time).children[0];
+  page.renderCalendar();
+  assert.equal(buttonAt('14:30').textContent,'△');
+  assert.equal(buttonAt('17:00').textContent,'○');
+  assert.equal(cells.get('2026-10-14 15:00').textContent,'×');
+  assert.equal(cells.get('2026-10-14 14:00').textContent,'×');
+  buttonAt('14:30').events.click();
+  assert.equal(opened,1);
+  assert.equal(buttonAt('14:30').attrs['aria-haspopup'],'dialog');
+  assert.match(document.getElementById('bookingContactDateTime').textContent,/14 : 30/);
+  assert.equal(page.date.value,'');
+  assert.equal(page.time.value,'');
+  now = Date.parse('2026-10-14T14:29:00+09:00');
+  page.renderCalendar();
+  assert.equal(buttonAt('17:00').textContent,'△');
+  assert.equal(buttonAt('17:30').textContent,'○');
+  const html = fs.readFileSync(new URL('../public/page/customer_page/reservation_page.html',import.meta.url),'utf8');
+  const modal = html.split('<dialog id="bookingContactDialog"')[1].split('</dialog>')[0];
+  assert.match(modal,/method="dialog"/);
+  assert.match(modal,/href="tel:07085738131"/);
+  assert.match(modal,/href="https:\/\/line.me\/R\/ti\/p\/@725wajvz"/);
+});
+
+test('contact-only availability uses the same tap instruction and respects the evening filter', t => {
+  t.mock.method(Date, 'now', () => Date.parse('2026-10-14T14:00:00+09:00'));
+  const page = reservationHarness(() => {});
+  page.available = new Map();
+  page.contactAvailable = new Map([['2026-10-14', new Set(['16:30'])]]);
+  page.updateAvailabilityMessage();
+  assert.equal(page.slotMessage.textContent, 'ご希望の日時をタップしてください。');
+  page.eveningOnly = {checked: true};
+  page.updateAvailabilityMessage();
+  assert.match(page.slotMessage.textContent, /18:00以降に空きはありません/);
 });

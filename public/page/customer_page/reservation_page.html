@@ -63,7 +63,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&amp;display=swap"
     rel="stylesheet" />
-  <link rel="stylesheet" href="../../css/style.css" />
+  <link rel="stylesheet" href="../../css/style.css?v=booking-contact-center-20261014" />
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 
@@ -130,7 +130,7 @@
               <button type="button" id="bookingNext" class="btn btn-outline" disabled>次の一週間</button>
             </div>
             <p class="calendar-scroll-hint">カレンダーを左右にスクロールすると、ほかの日付を確認できます。</p>
-            <p id="calendarLegend" class="calendar-legend">○ 予約可能 × 受付不可 ✓ 選択中</p>
+            <p id="calendarLegend" class="calendar-legend">○ : 予約可能、× : 受付不可、△ 電話・LINEで要確認</p>
             <p id="slotMessage" class="field-help" role="status" aria-live="polite"></p>
             <button type="button" id="bookingCalendarRetry" class="btn btn-outline" hidden>再読み込み</button>
             <div id="bookingCalendar" class="calendar-scroll" role="region" aria-label="予約日時カレンダー"
@@ -174,6 +174,19 @@
 
       </div>
     </section>
+    <dialog id="bookingContactDialog" class="booking-dialog" aria-labelledby="bookingContactTitle"
+      aria-describedby="bookingContactDescription">
+      <form method="dialog">
+        <button class="btn btn-outline dialog-close" type="submit">閉じる</button>
+      </form>
+      <h2 id="bookingContactTitle" class="booking-contact-title">電話・LINEでご確認ください</h2>
+      <p id="bookingContactDateTime" class="calendar-selection"></p>
+      <p id="bookingContactDescription">ご希望の日時は、Web上では受け付けておりません。<br>お手数ですが、お電話またはLINEでご連絡ください。</p>
+      <div class="booking-contact-actions">
+        <a class="btn btn-primary" href="https://line.me/R/ti/p/@725wajvz">LINEで確認する</a>
+        <a class="btn btn-outline" href="tel:07085738131">電話で確認する</a>
+      </div>
+    </dialog>
   </main>
 
   <site-footer active-page="reservation" data-rendered="true">

@@ -1517,6 +1517,18 @@ site-footer {
 }
 
 .booking-dialog::backdrop { background: rgba(20, 40, 32, 0.48); }
+.calendar-slot.is-contact { color: #805719; background: #fbf4e7; }
+.calendar-slot.is-contact:hover { background: #f2e4cb; }
+.booking-contact-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 18px; }
+#bookingContactDialog .booking-contact-actions .btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  white-space: nowrap;
+  text-align: center;
+}
+.booking-contact-title { font-size: 1.2rem; line-height: 1.5; }
 .dialog-close { display: block; margin: 0 0 16px auto; }
 .booking-dialog .booking-card h2 { padding-right: 0; }
 .booking-dialog .booking-card dd { overflow-wrap: anywhere; }

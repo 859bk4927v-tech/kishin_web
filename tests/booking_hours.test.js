@@ -511,3 +511,104 @@ test('menu and start validation reject inherited keys and invalid treatment leng
   }
   assert.throws(() => Service.parseCalendarDate('2026-02-30'), /予約日/);
 });
+
+test('same-day availability starts three hours ahead, rounds to slots, and leaves tomorrow unchanged', async t => {
+  const db = database(t);
+  let now = Date.parse('2026-10-14T14:00:00+09:00');
+  t.mock.method(Date, 'now', () => now);
+  t.mock.method(Service, 'todayJst', () => '2026-10-14');
+  for (const menu of ['first_visit', 'followup_60', 'followup_90']) {
+    const response = await BookingApi.getAvailability(new URL(`https://example.test/api/availability?date=2026-10-14&menu=${menu}`), { BOOKING_DB: db });
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).slots[0], '17:00');
+  }
+  now += 1;
+  assert.equal((await Service.getAvailableSlots(db, '2026-10-14', 'first_visit'))[0], '17:30');
+  now = Date.parse('2026-10-14T22:00:00+09:00');
+  assert.deepEqual(await Service.getAvailableSlots(db, '2026-10-14', 'followup_60'), []);
+  assert.equal((await Service.getAvailableSlots(db, '2026-10-15', 'first_visit'))[0], '09:00');
+  // The decision uses Japan's date, even while UTC is still on the previous day.
+  now = Date.parse('2026-10-15T08:00:00+09:00');
+  assert.equal((await Service.getAvailableSlots(db, '2026-10-15', 'first_visit'))[0], '11:00');
+});
+
+test('public booking rejects short notice, accepts the boundary, and safely replays a saved booking after cutoff', async t => {
+  const db = database(t);
+  let now = Date.parse('2026-10-14T14:00:00+09:00');
+  t.mock.method(Date, 'now', () => now);
+  t.mock.method(Service, 'todayJst', () => '2026-10-14');
+  mockTurnstile(t);
+  let notifications = 0;
+  t.mock.method(LineNotifier, 'sendAndRecord', async () => { notifications++; return { status: 'sent' }; });
+  const input = { ...lineBookingInput(), date: '2026-10-14', time: '16:30', lineIdToken: undefined };
+  const env = { BOOKING_DB: db, TURNSTILE_SECRET: 'test-turnstile-secret', ADMIN_TOKEN: 'test-admin' };
+  const denied = await BookingApi.createBooking(lineRequest(input), env);
+  assert.equal(denied.status, 400);
+  assert.match((await denied.json()).error, /3時間.*電話.*LINE/);
+  assert.equal((await db.prepare('SELECT COUNT(*) AS total FROM bookings').bind().first()).total, 0);
+  assert.equal(notifications, 0);
+  input.time = '17:00';
+  const accepted = await BookingApi.createBooking(lineRequest(input), env);
+  assert.equal(accepted.status, 201);
+  const receipt = await accepted.json();
+  now += 60_000;
+  const repeated = await BookingApi.createBooking(lineRequest(input), env);
+  assert.equal(repeated.status, 200);
+  assert.deepEqual((await repeated.json()).booking, receipt.booking);
+  assert.equal(notifications, 1);
+  assert.equal((await BookingApi.createBooking(lineRequest({ ...input, idempotencyKey: 'another-short-notice-request' }), env)).status, 400);
+  const saved = await Service.findBookingByRequestKey(db, input.idempotencyKey);
+  const changed = await BookingApi.rescheduleBooking(new Request('https://example.test/api/admin/bookings/' + saved.id, {
+    method: 'PUT', headers: { Authorization: 'Bearer test-admin', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ date: input.date, time: '15:00' })
+  }), env, saved.id);
+  assert.equal(changed.status, 200);
+  assert.equal((await Service.findBooking(db, saved.id)).start_at, '2026-10-14T15:00:00+09:00');
+  const block = await BookingApi.createAdminBlock(new Request('https://example.test/api/admin/blocks', {
+    method: 'POST', headers: { Authorization: 'Bearer test-admin', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ date: input.date, startTime: '14:30', endTime: '15:00' })
+  }), env);
+  assert.equal(block.status, 201);
+});
+
+test('booking reevaluates short notice after external verification before writing or notifying', async t => {
+  const db = database(t);
+  let now = Date.parse('2026-10-14T13:59:59+09:00');
+  t.mock.method(Date, 'now', () => now);
+  t.mock.method(Service, 'todayJst', () => '2026-10-14');
+  t.mock.method(globalThis, 'fetch', async url => {
+    assert.equal(url, 'https://challenges.cloudflare.com/turnstile/v0/siteverify');
+    now = Date.parse('2026-10-14T14:00:01+09:00');
+    return Response.json({ success: true, hostname: 'example.test' });
+  });
+  const response = await BookingApi.createBooking(lineRequest({ ...lineBookingInput(), date: '2026-10-14', time: '17:00', lineIdToken: undefined }), {
+    BOOKING_DB: db, TURNSTILE_SECRET: 'test-turnstile-secret'
+  });
+  assert.equal(response.status, 400);
+  assert.equal((await db.prepare('SELECT COUNT(*) AS total FROM bookings').bind().first()).total, 0);
+});
+
+test('contact-only slots expose free short-notice times without exposing occupied or past times, in one read', async t => {
+  const db = database(t);
+  let now = Date.parse('2026-10-14T14:00:00+09:00');
+  t.mock.method(Date, 'now', () => now);
+  t.mock.method(Service, 'todayJst', () => '2026-10-14');
+  let reads = 0;
+  const tracked = { prepare(sql) { reads++; return db.prepare(sql); } };
+  let response = await BookingApi.getAvailability(new URL('https://example.test/api/availability?date=2026-10-14&menu=first_visit'), { BOOKING_DB: tracked });
+  let result = await response.json();
+  assert.equal(reads, 1);
+  assert.deepEqual(result.contactSlots, ['14:30','15:00','15:30','16:00','16:30']);
+  assert.equal(result.slots[0], '17:00');
+  now = Date.parse('2026-10-14T14:29:00+09:00');
+  response = await BookingApi.getAvailability(new URL('https://example.test/api/availability?date=2026-10-14&menu=first_visit'), { BOOKING_DB: db });
+  result = await response.json();
+  assert.equal(result.contactSlots.at(-1), '17:00');
+  assert.equal(result.slots[0], '17:30');
+  await Service.createBlock(db, { id: 'contact-window-block', ...Service.parseBlockedPeriod('2026-10-14','14:30','15:00'), note: '', createdAt: Service.isoLocal(new Date()) });
+  await Service.createBooking(db, booking('2026-10-14','15:30','followup_60'));
+  result = await Service.getSlotAvailability(db, '2026-10-14', 'first_visit');
+  for (const time of ['14:00','14:30','15:00','15:30','16:00','16:30']) assert.equal(result.contactSlots.includes(time), false);
+  assert.equal(result.contactSlots.includes('17:00'), true);
+  assert.deepEqual((await Service.getSlotAvailability(db,'2026-10-15','first_visit')).contactSlots, []);
+});

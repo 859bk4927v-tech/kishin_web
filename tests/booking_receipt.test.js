@@ -16,7 +16,7 @@ test('successful submission stores the receipt and opens the completion page', a
   const saved = new Map();
   let destination = '';
   const booking = {
-    bookingNumber: 'YOM-20261006-ABCD', customerName: '予約テスト', date: '2026-10-06',
+    bookingNumber: 'YOM-20261006-ABCD', customerName: '予約テスト', date: '2099-01-02',
     startTime: '10:00', endTime: '11:20', menuName: '初診:カウンセリング20分+施術60分'
   };
   const sandbox = vm.createContext({

@@ -252,6 +252,7 @@ const japaneseStrings = {
     checkingAvailability: "空き時間を確認しています…",
     chooseTime: "ご希望の時間を選択してください。",
     sending: "予約を送信しています…",
+    sameDayNotice: "当日のWeb予約は3時間前まで受け付けています。3時間以内をご希望の場合は、お電話またはLINEでご連絡ください。",
     submit: "予約を確定する",
     confirmed: "ご予約が確定しました。予約番号:{bookingNumber}。確認のため、この番号をお控えください。",
     confirmedLineFailed: "ご予約は確定しました(予約番号:{bookingNumber})。ただし院長へのLINE通知に失敗しました。お急ぎの場合はお電話でご連絡ください。",

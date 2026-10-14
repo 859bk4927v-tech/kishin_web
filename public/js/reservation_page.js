@@ -12,6 +12,7 @@ class ReservationPage {
     this.calendarRetry = this.document.getElementById("bookingCalendarRetry");
     this.eveningOnly = this.document.getElementById("eveningOnly");
     this.available = new Map();
+    this.contactAvailable = new Map();
     this.config = null;
     this.slotMessage = this.document.getElementById("slotMessage");
     this.notice = this.document.getElementById("bookingNotice");
@@ -92,6 +93,7 @@ class ReservationPage {
     } catch (error) {
       this.config = null;
       this.available = new Map();
+      this.contactAvailable = new Map();
       this.calendar.replaceChildren();
       this.clearSelection();
       this.slotMessage.textContent = error.message;
@@ -120,6 +122,7 @@ class ReservationPage {
     const requestId = ++this.availabilityRequestId;
     this.clearSelection();
     this.available = new Map();
+    this.contactAvailable = new Map();
     this.calendarRetry.hidden = true;
     this.calendar.setAttribute("aria-busy", "false");
     if (!this.config) return;
@@ -135,13 +138,14 @@ class ReservationPage {
     this.calendar.setAttribute('aria-busy', 'true');
     try {
       const results = await Promise.all(dates.map(async date => {
-        if (date > this.config.maxDate || this.config.closedWeekdays.includes(WeeklyCalendar.weekday(date))) return [date, []];
+        if (date > this.config.maxDate || this.config.closedWeekdays.includes(WeeklyCalendar.weekday(date))) return [date, [], []];
         const params = new URLSearchParams({ date, menu });
         const data = await ApiClient.request(`/api/availability?${params}`);
-        return [date, data.slots];
+        return [date, data.slots, data.contactSlots || []];
       }));
       if (requestId !== this.availabilityRequestId) return;
       this.available = new Map(results.map(([date, slots]) => [date, new Set(slots)]));
+      this.contactAvailable = new Map(results.map(([date, , contactSlots]) => [date, new Set(contactSlots)]));
       this.renderCalendar();
       this.updateAvailabilityMessage();
     } catch (error) {
@@ -168,9 +172,11 @@ class ReservationPage {
   }
 
   updateAvailabilityMessage() {
-    const hasSlots = [...this.available.values()].some(slots => [...slots].some(time => !this.eveningOnly?.checked || time >= '18:00'));
+    const hasSlots = [...this.available, ...(this.contactAvailable || new Map())].some(([date, slots]) =>
+      [...slots].some(time => (!this.eveningOnly?.checked || time >= '18:00')
+        && Date.parse(`${date}T${time}:00+09:00`) > Date.now()));
     this.slotMessage.textContent = hasSlots
-      ? 'ご希望の日時の「○」をタップしてください。'
+      ? 'ご希望の日時をタップしてください。'
       : this.eveningOnly?.checked
         ? 'この週の18:00以降に空きはありません。すべての時間帯を表示するか、別の週をご確認ください。'
         : 'この週に予約可能な時間はありません。別の週をご確認ください。';
@@ -187,9 +193,11 @@ class ReservationPage {
     }
     const table = WeeklyCalendar.createTable(this.document, dates, this.visibleTimes(),
       '希望日時選択:' + WeeklyCalendar.rangeLabel(this.weekStart), (cell, date, time) => {
-        const available = this.available.get(date)?.has(time)
-          && Date.parse(`${date}T${time}:00+09:00`) > Date.now();
-        if (!available) {
+        const withinWindow = this.isSlotWithinBookingWindow(date, time);
+        const available = this.available.get(date)?.has(time) && withinWindow;
+        const contact = !withinWindow && Date.parse(`${date}T${time}:00+09:00`) > Date.now()
+          && (this.contactAvailable?.get(date)?.has(time) || this.available.get(date)?.has(time));
+        if (!available && !contact) {
           cell.className = 'calendar-unavailable';
           cell.textContent = '×';
           cell.setAttribute('aria-label', WeeklyCalendar.displayText(`${WeeklyCalendar.dateLabel(date)} ${time} 受付不可`));
@@ -197,31 +205,53 @@ class ReservationPage {
         }
         const button = this.document.createElement('button');
         button.type = 'button';
-        button.className = 'calendar-slot';
-        button.textContent = '○';
+        button.className = contact ? 'calendar-slot is-contact' : 'calendar-slot';
+        button.textContent = contact ? '△' : '○';
         button.dataset.date = date;
         button.dataset.time = time;
-        button.setAttribute('aria-label', WeeklyCalendar.displayText(`${WeeklyCalendar.dateLabel(date)} ${time} 予約可能`));
-        button.setAttribute('aria-pressed', 'false');
-        button.addEventListener('click', () => this.selectSlot(button, date, time));
+        button.setAttribute('aria-label', WeeklyCalendar.displayText(`${WeeklyCalendar.dateLabel(date)} ${time} ${contact ? '電話・LINEで要確認' : '予約可能'}`));
+        if (contact) {
+          button.setAttribute('aria-haspopup', 'dialog');
+          button.setAttribute('aria-controls', 'bookingContactDialog');
+          button.addEventListener('click', () => this.showContactDialog(date, time));
+        } else {
+          button.setAttribute('aria-pressed', 'false');
+          button.addEventListener('click', () => this.selectSlot(button, date, time));
+        }
         cell.append(button);
       });
     this.calendar.replaceChildren(table);
   }
 
   selectSlot(button, date, time) {
-    if (Date.parse(`${date}T${time}:00+09:00`) <= Date.now()) {
+    if (!this.isSlotWithinBookingWindow(date, time)) {
+      this.showNotice(appJa.text('booking.sameDayNotice'), 'error');
       this.loadSlots();
       return;
     }
     this.date.value = date;
     this.time.value = time;
-    this.calendar.querySelectorAll('.calendar-slot').forEach(slot => {
+    this.calendar.querySelectorAll('.calendar-slot:not(.is-contact)').forEach(slot => {
       const selected = slot === button;
       slot.setAttribute('aria-pressed', String(selected));
       slot.textContent = selected ? '✓' : '○';
     });
     this.document.getElementById('selectedDateTime').textContent = WeeklyCalendar.displayText(`選択中 : ${WeeklyCalendar.dateLabel(date)} ${time}`);
+  }
+
+  showContactDialog(date, time) {
+    this.document.getElementById('bookingContactDateTime').textContent =
+      WeeklyCalendar.displayText(`${WeeklyCalendar.dateLabel(date)} ${time}`);
+    const dialog = this.document.getElementById('bookingContactDialog');
+    if (!dialog.open) dialog.showModal();
+  }
+
+  isSlotWithinBookingWindow(date, time) {
+    const now = Date.now();
+    const start = Date.parse(`${date}T${time}:00+09:00`);
+    const today = new Date(now + 9 * 60 * 60_000).toISOString().slice(0, 10);
+    const noticeMinutes = this.config?.schedule?.sameDayNoticeMinutes || 0;
+    return start > now && (date !== today || start >= now + noticeMinutes * 60_000);
   }
 
   createBookingRequest() {
@@ -252,6 +282,11 @@ class ReservationPage {
     this.form.inert = true;
     this.submitButton.textContent = appJa.text("booking.sending");
     try {
+      if (!this.isSlotWithinBookingWindow(this.date.value, this.time.value)) {
+        this.showNotice(appJa.text('booking.sameDayNotice'), 'error');
+        await this.loadSlots();
+        return;
+      }
       const lineIdToken =
         typeof window.getLineIdTokenForBooking === "function"
           ? await window.getLineIdTokenForBooking()

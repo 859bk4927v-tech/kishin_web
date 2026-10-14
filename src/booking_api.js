@@ -1,4 +1,4 @@
-import { BookingService, BOOKABLE_MENUS, BOOKING_SCHEDULE, CLOSED_WEEKDAYS } from "./booking_service.js";
+import { BookingService, BOOKABLE_MENUS, BOOKING_SCHEDULE, CLOSED_WEEKDAYS, SAME_DAY_BOOKING_NOTICE } from "./booking_service.js";
 import { LineNotifier } from "./line_notifier.js";
 import { PatientLineNotifier } from "./patient_line_notifier.js";
 import { LineIdentityVerifier, LineIdentityError } from "./line_identity_verifier.js";
@@ -161,8 +161,8 @@ export class BookingApi {
     }
 
     try {
-      const slots = await BookingService.getAvailableSlots(env.BOOKING_DB, selectedDate, menu);
-      return this.json(200, { date: selectedDate, slots });
+      const availability = await BookingService.getSlotAvailability(env.BOOKING_DB, selectedDate, menu);
+      return this.json(200, { date: selectedDate, ...availability });
     } catch {
       return this.json(500, { error: "空き時間を確認できませんでした。時間をおいて再度お試しください。" });
     }
@@ -290,7 +290,13 @@ export class BookingApi {
     };
 
     try {
-      const result = await BookingService.createBooking(env.BOOKING_DB, booking);
+      // Check after external verification, immediately before saving. A saved request
+      // may still return its receipt after the cutoff, without creating or notifying again.
+      const allowed = BookingService.isOnlineBookingStartAllowed(startAt);
+      const result = allowed
+        ? await BookingService.createBooking(env.BOOKING_DB, booking)
+        : { row: await BookingService.findBookingByRequestKey(env.BOOKING_DB, idempotencyKey), created: false };
+      if (!allowed && !result.row) return this.json(400, { error: SAME_DAY_BOOKING_NOTICE });
       if (!result.row) return this.json(409, { error: "申し訳ありません。その時間は予約済みです。別の時間をお選びください。" });
       if ((result.row.line_user_id || "") !== lineUserId) {
         return this.json(409, { error: "予約時のLINEアカウントと一致しません。元の予約画面から再度お試しください。" });

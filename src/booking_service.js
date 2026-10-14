@@ -9,6 +9,7 @@ export const CLOSED_WEEKDAYS = Object.freeze([5]);
 export const BOOKING_SCHEDULE = Object.freeze({
   slotMinutes: SLOT_MINUTES,
   bookingBufferMinutes: BOOKING_BUFFER_MINUTES,
+  sameDayNoticeMinutes: 180,
   openingMinute: OPENING_MINUTE,
   lastStartMinute: LAST_START_MINUTE,
   closingMinute: CLOSING_MINUTE
@@ -19,6 +20,8 @@ export const BOOKABLE_MENUS = Object.freeze({
   followup_60: { name: "2回目以降 : 施術60分", duration: 60, price: 6000 },
   followup_90: { name: "2回目以降 : 施術90分", duration: 90, price: 9000 }
 });
+
+export const SAME_DAY_BOOKING_NOTICE = "当日のWeb予約は3時間前まで受け付けています。3時間以内をご希望の場合は、お電話またはLINEでご連絡ください。";
 
 // Preserve the original duration and name for bookings made before the price change.
 export const MENUS = Object.freeze({
@@ -123,6 +126,14 @@ export class BookingService {
     return { startAt, endAt: this.timestampAtMinute(dateText, toMinute(endTime)) };
   }
 
+  static isOnlineBookingStartAllowed(startAt, now = Date.now()) {
+    const start = Date.parse(startAt);
+    if (!Number.isFinite(start) || start <= now) return false;
+    const today = this.isoLocal(new Date(now)).slice(0, 10);
+    return startAt.slice(0, 10) !== today
+      || start >= now + BOOKING_SCHEDULE.sameDayNoticeMinutes * 60_000;
+  }
+
   // Store midnight as the next day so SQLite's timestamp comparisons stay chronological.
   static timestampAtMinute(dateText, minute) {
     const date = this.addDays(dateText, Math.floor(minute / (24 * 60)));
@@ -209,6 +220,10 @@ export class BookingService {
   }
 
   static async getAvailableSlots(db, dateText, menuCode, excludeId = null) {
+    return (await this.getSlotAvailability(db, dateText, menuCode, excludeId)).slots;
+  }
+
+  static async getSlotAvailability(db, dateText, menuCode, excludeId = null) {
     const menu = this.parseMenu(menuCode);
     this.parseCalendarDate(dateText);
     const dayStart = `${dateText}T00:00:00+09:00`;
@@ -220,6 +235,7 @@ export class BookingService {
       SELECT start_at, end_at, 'block' AS period_type FROM blocked_periods WHERE start_at < ? AND end_at > ?
     `).bind(excludeId || '', dayEnd, dayStart, dayEnd, dayStart).all();
     const slots = [];
+    const contactSlots = [];
     for (let startMinute = OPENING_MINUTE; startMinute <= LAST_START_MINUTE; startMinute += SLOT_MINUTES) {
       if (startMinute + menu.duration > CLOSING_MINUTE) continue;
       const hour = Math.floor(startMinute / 60);
@@ -232,9 +248,11 @@ export class BookingService {
         ? period.start_at < this.addMinutes(endAt, BOOKING_BUFFER_MINUTES)
           && period.end_at > this.addMinutes(startAt, -BOOKING_BUFFER_MINUTES)
         : period.start_at < endAt && period.end_at > startAt);
-      if (!collision) slots.push(timeText);
+      if (!collision) {
+        (this.isOnlineBookingStartAllowed(startAt) ? slots : contactSlots).push(timeText);
+      }
     }
-    return slots;
+    return { slots, contactSlots };
   }
 
   static async createBooking(db, booking) {
@@ -273,10 +291,13 @@ export class BookingService {
     ).first();
 
     if (inserted) return { row: inserted, created: true };
-    const previous = await db.prepare("SELECT * FROM bookings WHERE idempotency_key = ?")
-      .bind(booking.idempotencyKey).first();
+    const previous = await this.findBookingByRequestKey(db, booking.idempotencyKey);
     if (previous) return { row: previous, created: false };
     return { row: null, created: false };
+  }
+
+  static findBookingByRequestKey(db, key) {
+    return db.prepare("SELECT * FROM bookings WHERE idempotency_key = ?").bind(key).first();
   }
 
   static async listBookings(db, dateText) {
