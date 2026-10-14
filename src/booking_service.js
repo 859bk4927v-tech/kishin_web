@@ -16,7 +16,7 @@ export const BOOKING_SCHEDULE = Object.freeze({
 });
 
 export const BOOKABLE_MENUS = Object.freeze({
-  first_visit: { name: "初診 : カウンセリング20分+施術60分", duration: 80, price: 7000 },
+  first_visit: { name: "初診 : カウンセリング20分+施術60分", duration: 80, price: 8000 },
   followup_60: { name: "2回目以降 : 施術60分", duration: 60, price: 6000 },
   followup_90: { name: "2回目以降 : 施術90分", duration: 90, price: 9000 }
 });

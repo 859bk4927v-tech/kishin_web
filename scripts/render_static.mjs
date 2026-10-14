@@ -88,7 +88,7 @@ function schema(path, title, description) {
       employee: { "@type": "Person", name: copy.directorName.split("(")[0], jobTitle: copy.directorRole },
       hasOfferCatalog: {
         "@type": "OfferCatalog", name: "施術料金", itemListElement: [
-          ["firstVisit", 7000], ["followup60", 6000], ["followup90", 9000]
+          ["firstVisit", 8000], ["followup60", 6000], ["followup90", 9000]
         ].map(([key, price]) => ({
           "@type": "Offer", price, priceCurrency: "JPY",
           url: PUBLIC_PAGE_PATHS[2], itemOffered: { "@type": "Service", name: copy.menus[key] }

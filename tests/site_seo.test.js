@@ -27,7 +27,7 @@ test("initial HTML includes clinic, symptom descriptions, menu prices and crawla
   assert.match(home, /Instagram : @yomon_harikyu/);
   assert.match(home, /9:00~24:00/);
   const price = read(PUBLIC_PAGE_PATHS[2]);
-  for (const amount of ["7,000", "6,000", "9,000"]) assert.ok(price.includes(amount));
+  for (const amount of ["8,000", "6,000", "9,000"]) assert.ok(price.includes(amount));
   assert.ok(!/data-app-ja="[^"]+"><\//.test(home));
 });
 
@@ -52,7 +52,7 @@ test("published pages emit one absolute canonical, social preview and valid busi
       assert.equal(clinic.openingHoursSpecification[0].opens, "09:00");
       assert.equal(clinic.openingHoursSpecification[0].closes, "00:00");
       assert.equal(clinic.openingHoursSpecification[1].dayOfWeek, "Friday");
-      assert.deepEqual(clinic.hasOfferCatalog.itemListElement.map(item => item.price), [7000, 6000, 9000]);
+      assert.deepEqual(clinic.hasOfferCatalog.itemListElement.map(item => item.price), [8000, 6000, 9000]);
     }
   }
 });

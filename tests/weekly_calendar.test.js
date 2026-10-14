@@ -20,7 +20,7 @@ test('public config exposes the same schedule used by the booking service', asyn
   const config = await BookingApi.getConfig({ BOOKING_DAYS_AHEAD: '60' }).json();
   assert.deepEqual(config.schedule, BOOKING_SCHEDULE);
   assert.deepEqual(Object.keys(config.menus), ['first_visit', 'followup_60', 'followup_90']);
-  assert.deepEqual(Object.values(config.menus).map(({ duration, price }) => [duration, price]), [[80, 7000], [60, 6000], [90, 9000]]);
+  assert.deepEqual(Object.values(config.menus).map(({ duration, price }) => [duration, price]), [[80, 8000], [60, 6000], [90, 9000]]);
   assert.equal(config.maxDate, Calendar.addDays(config.minDate, 60));
   const starts = Array.from(Calendar.times(config.schedule));
   assert.equal(starts[0], '09:00');
