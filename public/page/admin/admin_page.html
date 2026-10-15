@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&amp;display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="../../css/style.css" />
+  <link rel="stylesheet" href="../../css/style.css?v=admin-course-20261015" />
 </head>
 <body class="admin-page">
   <a class="skip-link" href="#main" data-app-ja="actions.skipToContent">本文へスキップ</a>
@@ -48,15 +48,40 @@
             <button class="btn btn-outline" id="adminLogout" type="button" data-app-ja="form.logout">ログアウト</button>
           </div>
           <form id="adminBlockForm" class="admin-block-form">
-            <h2>予定を登録して予約枠を塞ぐ</h2>
-            <p>日付と開始・終了時刻を選んでください。登録した時間はお客様の予約カレンダーに表示されません。</p>
+            <h2>私用・患者予約を登録</h2>
+            <p>予定の種類と日時を選んでください。患者名・電話番号・メモは院長画面のみ表示されます。</p>
             <div class="admin-block-fields">
-              <div class="form-field"><label for="adminBlockDate">日付</label><input id="adminBlockDate" type="date" required /></div>
-              <div class="form-field"><label for="adminBlockStart">開始</label><select id="adminBlockStart" required></select></div>
-              <div class="form-field"><label for="adminBlockEnd">終了</label><select id="adminBlockEnd" required></select></div>
+              <div class="form-field admin-block-note">
+                <label for="adminBlockType">予定の種類 <span class="required">必須</span></label>
+                <select id="adminBlockType" required>
+                  <option value="">選択してください</option>
+                  <option value="private">私用</option>
+                  <option value="patient">患者予約</option>
+                </select>
+              </div>
+              <div id="adminBlockTimeFields" class="admin-block-time-fields">
+                <div class="form-field"><label for="adminBlockDate">日付</label><input id="adminBlockDate" type="date" required /></div>
+                <div class="form-field"><label for="adminBlockStart">開始</label><select id="adminBlockStart" required></select></div>
+                <div class="form-field"><label for="adminBlockEnd">終了</label><select id="adminBlockEnd" required></select></div>
+              </div>
+              <div id="adminBlockPatientFields" class="admin-block-patient" hidden>
+                <div class="form-field admin-block-note">
+                  <label for="adminBlockMenu">施術コース <span class="required">必須</span></label>
+                  <select id="adminBlockMenu" disabled><option value="">選択してください</option></select>
+                  <p id="adminPatientSlot" class="field-help" role="status" aria-live="polite">コースを選び、カレンダーの空き枠をタップしてください。</p>
+                </div>
+                <div class="form-field">
+                  <label for="adminBlockPatientName">患者さまのお名前 <span class="required">必須</span></label>
+                  <input id="adminBlockPatientName" type="text" maxlength="80" autocomplete="off" disabled />
+                </div>
+                <div class="form-field">
+                  <label for="adminBlockPhone">電話番号(任意)</label>
+                  <input id="adminBlockPhone" type="tel" inputmode="tel" maxlength="30" autocomplete="off" disabled />
+                </div>
+              </div>
               <div class="form-field admin-block-note"><label for="adminBlockNote">メモ(院長画面のみ表示・任意)</label><input id="adminBlockNote" type="text" maxlength="100" placeholder="例 : 外出" /></div>
             </div>
-            <button id="adminBlockSubmit" class="btn btn-primary" type="submit">この時間を塞ぐ</button>
+            <button id="adminBlockSubmit" class="btn btn-primary" type="submit">予定を登録する</button>
           </form>
           <div class="calendar-navigation">
             <button type="button" id="adminPrevious" class="btn btn-outline">前の一週間</button>
@@ -64,7 +89,7 @@
             <button type="button" id="adminNext" class="btn btn-outline">次の一週間</button>
           </div>
           <p id="adminCalendarHelp" class="field-help">予約済みの枠をタップすると予約情報を、予定で塞いだ枠をタップすると予定の詳細を確認できます。</p>
-          <p class="calendar-legend">予約済み : 緑色の枠 予定あり : 茶色の枠 空き : — 休院 : 休</p>
+          <p class="calendar-legend">患者予約 : 緑色の枠 私用 : 茶色の枠 空き : ○／— 休院 : 休</p>
           <p id="adminCalendarStatus" role="status" aria-live="polite"></p>
           <div id="adminCalendar" class="calendar-scroll" role="region" aria-label="院長用週間予約カレンダー" aria-describedby="adminCalendarHelp" tabindex="0"></div>
           <details id="cancelledBookings" class="cancelled-bookings" hidden>
@@ -119,6 +144,6 @@
   <script src="../../js/main.js"></script>
   <script src="../../js/weekly_calendar.js"></script>
   <script src="../../js/api_client.js"></script>
-  <script src="../../js/admin_page.js"></script>
+  <script src="../../js/admin_page.js?v=admin-course-20261015"></script>
 </body>
 </html>

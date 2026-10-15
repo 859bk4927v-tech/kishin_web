@@ -4,6 +4,10 @@ const BOOKING_BUFFER_MINUTES = 30;
 const OPENING_MINUTE = 9 * 60;
 const LAST_START_MINUTE = 23 * 60 + 30;
 const CLOSING_MINUTE = 24 * 60;
+// Course-based patient appointments need the same separation as Web bookings.
+// Private periods and older appointments with no saved course keep exact-time blocking.
+const BLOCK_OVERLAP = `start_at < CASE WHEN block_type = 'patient' AND menu != '' THEN ? ELSE ? END
+  AND end_at > CASE WHEN block_type = 'patient' AND menu != '' THEN ? ELSE ? END`;
 export const CLOSED_WEEKDAYS = Object.freeze([5]);
 
 export const BOOKING_SCHEDULE = Object.freeze({
@@ -215,7 +219,13 @@ export class BookingService {
       date: `${start.year}-${start.month}-${start.day}`,
       startTime: `${start.hour}:${start.minute}`,
       endTime: this.endTimeLabel(start, end),
-      note: row.note
+      note: row.note,
+      blockType: row.block_type || "private",
+      customerName: row.customer_name || "",
+      phone: row.phone || "",
+      menu: row.menu || "",
+      menuName: MENUS[row.menu]?.name || "",
+      durationMinutes: (Date.parse(row.end_at) - Date.parse(row.start_at)) / 60_000
     };
   }
 
@@ -232,7 +242,9 @@ export class BookingService {
       SELECT start_at, end_at, 'booking' AS period_type FROM bookings
       WHERE status = 'confirmed' AND id != ? AND start_at < ? AND end_at > ?
       UNION ALL
-      SELECT start_at, end_at, 'block' AS period_type FROM blocked_periods WHERE start_at < ? AND end_at > ?
+      SELECT start_at, end_at,
+        CASE WHEN block_type = 'patient' AND menu != '' THEN 'booking' ELSE 'block' END AS period_type
+      FROM blocked_periods WHERE start_at < ? AND end_at > ?
     `).bind(excludeId || '', dayEnd, dayStart, dayEnd, dayStart).all();
     const slots = [];
     const contactSlots = [];
@@ -267,7 +279,7 @@ export class BookingService {
         WHERE status = 'confirmed' AND start_at < ? AND end_at > ?
       )
       AND NOT EXISTS (
-        SELECT 1 FROM blocked_periods WHERE start_at < ? AND end_at > ?
+        SELECT 1 FROM blocked_periods WHERE ${BLOCK_OVERLAP}
       )
       ON CONFLICT(idempotency_key) DO NOTHING
       RETURNING *
@@ -286,8 +298,8 @@ export class BookingService {
       booking.createdAt,
       this.addMinutes(booking.endAt, BOOKING_BUFFER_MINUTES),
       this.addMinutes(booking.startAt, -BOOKING_BUFFER_MINUTES),
-      booking.endAt,
-      booking.startAt
+      this.addMinutes(booking.endAt, BOOKING_BUFFER_MINUTES), booking.endAt,
+      this.addMinutes(booking.startAt, -BOOKING_BUFFER_MINUTES), booking.startAt
     ).first();
 
     if (inserted) return { row: inserted, created: true };
@@ -329,13 +341,14 @@ export class BookingService {
           WHERE status = 'confirmed' AND id != ? AND start_at < ? AND end_at > ?
         )
         AND NOT EXISTS (
-          SELECT 1 FROM blocked_periods WHERE start_at < ? AND end_at > ?
+          SELECT 1 FROM blocked_periods WHERE ${BLOCK_OVERLAP}
         )
       RETURNING id
     `).bind(
       startAt, endAt, this.isoLocal(new Date()), bookingId, bookingId,
       this.addMinutes(endAt, BOOKING_BUFFER_MINUTES), this.addMinutes(startAt, -BOOKING_BUFFER_MINUTES),
-      endAt, startAt
+      this.addMinutes(endAt, BOOKING_BUFFER_MINUTES), endAt,
+      this.addMinutes(startAt, -BOOKING_BUFFER_MINUTES), startAt
     ).first();
   }
 
@@ -349,20 +362,24 @@ export class BookingService {
   }
 
   static async createBlock(db, block) {
+    const patient = block.blockType === 'patient' && !!block.menu;
+    const paddedStart = patient ? this.addMinutes(block.startAt, -BOOKING_BUFFER_MINUTES) : block.startAt;
+    const paddedEnd = patient ? this.addMinutes(block.endAt, BOOKING_BUFFER_MINUTES) : block.endAt;
     return db.prepare(`
-      INSERT INTO blocked_periods (id, start_at, end_at, note, created_at)
-      SELECT ?, ?, ?, ?, ?
+      INSERT INTO blocked_periods (id, start_at, end_at, note, created_at, block_type, customer_name, phone, menu)
+      SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?
       WHERE NOT EXISTS (
         SELECT 1 FROM bookings
         WHERE status = 'confirmed' AND start_at < ? AND end_at > ?
       )
       AND NOT EXISTS (
-        SELECT 1 FROM blocked_periods WHERE start_at < ? AND end_at > ?
+        SELECT 1 FROM blocked_periods WHERE ${BLOCK_OVERLAP}
       )
       RETURNING *
     `).bind(
       block.id, block.startAt, block.endAt, block.note, block.createdAt,
-      block.endAt, block.startAt, block.endAt, block.startAt
+      block.blockType || 'private', block.customerName || '', block.phone || '', block.menu || '',
+      paddedEnd, paddedStart, paddedEnd, block.endAt, paddedStart, block.startAt
     ).first();
   }
 

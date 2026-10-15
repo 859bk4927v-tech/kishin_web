@@ -44,6 +44,16 @@ class AdminPage {
     this.blockStart = this.document.getElementById("adminBlockStart");
     this.blockEnd = this.document.getElementById("adminBlockEnd");
     this.blockNote = this.document.getElementById("adminBlockNote");
+    this.blockType = this.document.getElementById("adminBlockType");
+    this.blockPatientFields = this.document.getElementById("adminBlockPatientFields");
+    this.blockPatientName = this.document.getElementById("adminBlockPatientName");
+    this.blockPhone = this.document.getElementById("adminBlockPhone");
+    this.blockMenu = this.document.getElementById('adminBlockMenu');
+    this.blockTimeFields = this.document.getElementById('adminBlockTimeFields');
+    this.patientSlot = this.document.getElementById('adminPatientSlot');
+    this.calendarHelp = this.document.getElementById('adminCalendarHelp');
+    this.patientAvailability = new Map();
+    this.patientSelection = null;
     this.blockSubmit = this.document.getElementById("adminBlockSubmit");
     this.bookingList = this.document.getElementById("bookingList");
     this.notice = this.document.getElementById("adminNotice");
@@ -73,6 +83,9 @@ class AdminPage {
     });
     this.blockForm.addEventListener("submit", (event) => this.saveBlock(event));
     this.blockStart.addEventListener("change", () => this.updateBlockEndOptions());
+    this.blockType.addEventListener("change", () => this.updateBlockTypeFields());
+    this.blockMenu.addEventListener('change', () => { this.clearPatientSelection(); this.refresh(); });
+    this.updateBlockTypeFields();
     this.document.getElementById('adminPrevious').addEventListener('click', () => this.changeWeek(-1));
     this.document.getElementById('adminNext').addEventListener('click', () => this.changeWeek(1));
     this.document.getElementById('bookingDialogClose').addEventListener('click', () => this.closeBookingDialog());
@@ -123,6 +136,15 @@ class AdminPage {
     this.cancelledList.replaceChildren();
     this.calendarStatus.textContent = '';
     this.config = null;
+    this.blockType.value = '';
+    this.blockPatientName.value = '';
+    this.blockPhone.value = '';
+    this.blockMenu.value = '';
+    this.patientAvailability = new Map();
+    this.blockNote.value = '';
+    this.currentBookings = [];
+    this.currentBlocks = [];
+    this.updateBlockTypeFields();
     this.clearNotice();
   }
 
@@ -155,6 +177,8 @@ class AdminPage {
   }
 
   renderBookings(bookings, blocks) {
+    this.currentBookings = bookings;
+    this.currentBlocks = blocks;
     const dates = WeeklyCalendar.dates(this.dateInput.value);
     const active = bookings.filter(booking => booking.status === 'confirmed');
     const table = WeeklyCalendar.createTable(this.document, dates, WeeklyCalendar.times(this.config.schedule, true),
@@ -163,13 +187,41 @@ class AdminPage {
         if (!booking) {
           const block = blocks.find(item => item.date === date && item.startTime <= time && time < item.endTime);
           if (block) {
-            const button = this.createButton('予定あり', 'calendar-block', () => this.openBlock(block));
-            button.setAttribute('aria-label', WeeklyCalendar.displayText(`${WeeklyCalendar.dateLabel(date)} ${block.startTime}~${block.endTime} 登録した予定を開く`));
+            const patient = block.blockType === 'patient';
+            const button = this.createButton('', patient ? 'calendar-block is-patient' : 'calendar-block', () => this.openBlock(block));
+            if (patient) {
+              const nameLabel = this.document.createElement('span');
+              nameLabel.className = 'calendar-booking-name';
+              nameLabel.textContent = block.customerName;
+              button.append(nameLabel);
+            } else {
+              button.textContent = '私用';
+            }
+            button.setAttribute('aria-label', WeeklyCalendar.displayText(`${WeeklyCalendar.dateLabel(date)} ${block.startTime}~${block.endTime} ${patient ? block.customerName + ' 患者予約' : '私用の予定'}を開く`));
             cell.className = time === block.startTime ? 'block-start' : 'block-continuation';
             cell.append(button);
             return;
           }
           const closed = this.config.closedWeekdays.includes(WeeklyCalendar.weekday(date));
+          const moment = Date.parse(`${date}T${time}:00+09:00`);
+          const preparation = [...active, ...blocks.filter(item => item.blockType === 'patient' && item.menu)].some(item => {
+            const end = Date.parse(`${item.date}T00:00:00+09:00`) +
+              (Number(item.endTime.slice(0, 2)) * 60 + Number(item.endTime.slice(3))) * 60_000;
+            return moment >= end && moment < end + this.config.schedule.bookingBufferMinutes * 60_000;
+          });
+          if (preparation) { cell.className = 'calendar-buffer'; cell.textContent = '準備'; return; }
+          if (!closed && this.blockType.value === 'patient' && this.blockMenu.value) {
+            const available = moment > Date.now() && this.patientAvailability.get(date)?.has(time);
+            cell.className = available ? 'calendar-empty' : 'calendar-unavailable';
+            if (available) {
+              const selected = this.patientSelection?.date === date && this.patientSelection?.time === time;
+              const button = this.createButton(selected ? '✓' : '○', 'calendar-slot', () => this.choosePatientSlot(date, time));
+              button.setAttribute('aria-label', WeeklyCalendar.displayText(`${WeeklyCalendar.dateLabel(date)} ${time} 患者予約を登録`));
+              button.setAttribute('aria-pressed', String(selected));
+              cell.append(button);
+            } else { cell.textContent = '×'; }
+            return;
+          }
           cell.className = closed ? 'calendar-unavailable' : 'calendar-empty';
           cell.textContent = closed ? '休' : '—';
           return;
@@ -188,7 +240,8 @@ class AdminPage {
       });
     this.calendar.replaceChildren(table);
     this.document.getElementById('adminWeekLabel').textContent = WeeklyCalendar.rangeLabel(this.dateInput.value);
-    this.calendarStatus.textContent = appJa.format(`この週の予約 : ${active.length}件・予定 : ${blocks.length}件`);
+    const patientBlocks = blocks.filter(block => block.blockType === 'patient').length;
+    this.calendarStatus.textContent = appJa.format(`この週の予約 : ${active.length + patientBlocks}件・私用 : ${blocks.length - patientBlocks}件`);
     const cancelled = bookings.filter(booking => booking.status === 'cancelled');
     this.cancelledList.replaceChildren();
     cancelled.forEach(booking => {
@@ -226,14 +279,17 @@ class AdminPage {
     card.className = 'booking-card';
     const heading = this.document.createElement('h2');
     heading.id = 'booking-detail-title';
-    heading.textContent = '登録した予定';
+    const patient = block.blockType === 'patient';
+    heading.textContent = patient ? '患者予約' : '私用の予定';
     card.append(heading, this.createDetailsList([
       ['日時', WeeklyCalendar.displayText(`${WeeklyCalendar.dateLabel(block.date)} ${block.startTime}~${block.endTime}`)],
+      ...(patient ? [['施術コース', block.menuName || '未設定'], ['所要時間', `${block.durationMinutes}分`],
+        ['患者さまのお名前', block.customerName], ['電話番号', block.phone || '未入力']] : []),
       ['メモ', block.note || 'なし']
     ]));
     const actions = this.document.createElement('div');
     actions.className = 'booking-actions';
-    actions.append(this.createButton('この予定を解除', 'btn btn-danger', () => this.deleteBlock(block)));
+    actions.append(this.createButton(patient ? 'この患者予約を取り消す' : 'この予定を解除', 'btn btn-danger', () => this.deleteBlock(block)));
     card.append(actions);
     this.bookingList.append(card);
     this.dialog.showModal();
@@ -267,34 +323,99 @@ class AdminPage {
 
   async saveBlock(event) {
     event.preventDefault();
-    if (this.blockEnd.value <= this.blockStart.value) {
+    if (this.blockSubmit.disabled || !this.blockForm.reportValidity()) return;
+    const patient = this.blockType.value === 'patient';
+    const selection = this.patientSelection;
+    if (patient && (!selection || selection.menu !== this.blockMenu.value ||
+      Date.parse(`${selection.date}T${selection.time}:00+09:00`) <= Date.now())) {
+      this.showNotice('カレンダーからご希望の日時を選択してください。'); this.calendar.focus(); return;
+    }
+    if (!patient && this.blockEnd.value <= this.blockStart.value) {
       this.showNotice('終了時刻は開始時刻より後にしてください。');
       return;
     }
     this.blockSubmit.disabled = true;
+    this.blockForm.inert = true;
     try {
       await this.request('/api/admin/blocks', {
         method: 'POST',
         body: JSON.stringify({
-          date: this.blockDate.value,
-          startTime: this.blockStart.value,
-          endTime: this.blockEnd.value,
-          note: this.blockNote.value
+          date: patient ? selection.date : this.blockDate.value,
+          startTime: patient ? selection.time : this.blockStart.value,
+          endTime: patient ? undefined : this.blockEnd.value,
+          menu: patient ? this.blockMenu.value : '',
+          note: this.blockNote.value,
+          blockType: this.blockType.value,
+          customerName: this.blockType.value === 'patient' ? this.blockPatientName.value.trim() : '',
+          phone: this.blockType.value === 'patient' ? this.blockPhone.value.trim() : ''
         })
       });
-      this.dateInput.value = this.blockDate.value;
+      // Keep the selected week so a later-day selection remains in view.
+      if (!patient) this.dateInput.value = this.blockDate.value;
+      this.clearPatientSelection();
       this.blockNote.value = '';
-      this.showNotice('予定を登録し、予約枠を塞ぎました。', 'success');
+      this.blockPatientName.value = '';
+      this.blockPhone.value = '';
+      this.showNotice(this.blockType.value === 'patient' ? '患者予約を登録しました。' : '私用の予定を登録しました。', 'success');
       await this.refresh();
     } catch (error) {
       this.showNotice(error.message);
     } finally {
       this.blockSubmit.disabled = false;
+      this.blockForm.inert = false;
     }
   }
 
+  updateBlockTypeFields() {
+    const patient = this.blockType.value === 'patient';
+    this.blockPatientFields.hidden = !patient;
+    this.blockPatientName.required = patient;
+    this.blockPatientName.disabled = !patient;
+    this.blockPhone.disabled = !patient;
+    this.blockMenu.required = patient;
+    this.blockMenu.disabled = !patient;
+    this.blockTimeFields.hidden = patient;
+    for (const input of [this.blockDate, this.blockStart, this.blockEnd]) input.disabled = patient;
+    this.calendarHelp.textContent = patient ? 'コースを選んで、カレンダーの「○」をタップしてください。' :
+      '予約や予定をタップすると詳細を確認できます。';
+    this.clearPatientSelection();
+    this.blockSubmit.textContent = patient ? '患者予約を登録する' : '予定を登録する';
+    this.refresh();
+  }
+
+  clearPatientSelection() {
+    this.patientSelection = null;
+    this.patientSlot.textContent = 'コースを選び、カレンダーの空き枠をタップしてください。';
+  }
+
+  populateBlockMenus() {
+    const selected = this.blockMenu.value;
+    const placeholder = this.document.createElement('option');
+    placeholder.value = ''; placeholder.textContent = '選択してください';
+    const options = Object.entries(this.config.menus).map(([code, menu]) => {
+      const option = this.document.createElement('option');option.value = code;option.textContent = menu.name;return option;
+    });
+    this.blockMenu.replaceChildren(placeholder, ...options);
+    this.blockMenu.value = Object.hasOwn(this.config.menus, selected) ? selected : '';
+  }
+
+  choosePatientSlot(date, time) {
+    if (this.blockSubmit.disabled) return;
+    const menu = this.config.menus[this.blockMenu.value];
+    if (this.blockType.value !== 'patient' || !menu || !this.patientAvailability.get(date)?.has(time) ||
+      Date.parse(`${date}T${time}:00+09:00`) <= Date.now()) { this.refresh(); return; }
+    this.patientSelection = { date, time, menu: this.blockMenu.value };
+    const endMinute = Number(time.slice(0, 2)) * 60 + Number(time.slice(3)) + menu.duration;
+    const end = `${String(Math.floor(endMinute / 60)).padStart(2, '0')}:${String(endMinute % 60).padStart(2, '0')}`;
+    this.patientSlot.textContent = WeeklyCalendar.displayText(`選択中 : ${WeeklyCalendar.dateLabel(date)} ${time}~${end}（${menu.duration}分）`);
+    this.renderBookings(this.currentBookings, this.currentBlocks);
+    this.blockForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    this.blockPatientName.focus({ preventScroll: true });
+  }
+
   async deleteBlock(block) {
-    if (!window.confirm(`${WeeklyCalendar.dateLabel(block.date)} ${block.startTime}~${block.endTime} の予定を解除しますか?`)) return;
+    const label = block.blockType === 'patient' ? `${block.customerName}さまの患者予約を取り消しますか?` : 'の予定を解除しますか?';
+    if (!window.confirm(`${WeeklyCalendar.dateLabel(block.date)} ${block.startTime}~${block.endTime} ${label}`)) return;
     try {
       await this.request(`/api/admin/blocks/${encodeURIComponent(block.id)}`, { method: 'DELETE' });
       this.showNotice('予定を解除しました。', 'success');
@@ -413,6 +534,7 @@ class AdminPage {
       return false;
     }
     const requestId = ++this.refreshRequestId;
+    this.patientAvailability = new Map();
     this.closeBookingDialog();
     this.calendar.replaceChildren();
     this.cancelledList.replaceChildren();
@@ -421,9 +543,19 @@ class AdminPage {
     this.calendarStatus.textContent = '一週間の予約を読み込んでいます…';
     this.calendar.setAttribute('aria-busy', 'true');
     try {
-      const results = await Promise.all(WeeklyCalendar.dates(this.dateInput.value).map(date =>
-        this.request(`/api/admin/bookings?date=${encodeURIComponent(date)}`)));
+      const menu = this.blockType.value === 'patient' ? this.blockMenu.value : '';
+      const dates = WeeklyCalendar.dates(this.dateInput.value);
+      const [results, availability] = await Promise.all([
+        Promise.all(dates.map(date => this.request(`/api/admin/bookings?date=${encodeURIComponent(date)}`))),
+        Promise.all(dates.map(async date => {
+          if (!menu || date < this.config.minDate || date > this.config.maxDate || this.config.closedWeekdays.includes(WeeklyCalendar.weekday(date))) return [date, []];
+          const data = await this.request(`/api/admin/availability?date=${date}&menu=${encodeURIComponent(menu)}`);
+          return [date, data.slots];
+        }))
+      ]);
       if (requestId !== this.refreshRequestId) return false;
+      this.patientAvailability = new Map(availability.map(([date, slots]) => [date, new Set(slots)]));
+      if (this.patientSelection && !this.patientAvailability.get(this.patientSelection.date)?.has(this.patientSelection.time)) this.clearPatientSelection();
       this.renderBookings(results.flatMap(data => data.bookings), results.flatMap(data => data.blocks || []));
       return true;
     } catch (error) {
@@ -450,6 +582,7 @@ class AdminPage {
       this.blockDate.max = this.config.maxDate;
       this.blockDate.value = this.config.minDate;
       this.populateBlockTimes();
+      this.populateBlockMenus();
       if (!(await this.refresh())) return;
       this.clearNotice();
       this.tokenInput.value = '';

@@ -52,6 +52,7 @@ export class BookingApi {
     const { pathname } = url;
     if (request.method === "GET" && pathname === "/api/config") return this.getConfig(env);
     if (request.method === "GET" && pathname === "/api/availability") return this.getAvailability(url, env);
+    if (request.method === "GET" && pathname === "/api/admin/availability") return this.getAdminAvailability(request, url, env);
     if (request.method === "POST" && pathname === "/api/bookings") return this.createBooking(request, env);
     if (pathname === "/api/admin/bookings") {
       if (request.method === "GET") return this.getAdminBookings(request, url, env);
@@ -188,6 +189,15 @@ export class BookingApi {
     }
   }
 
+  static async getAdminAvailability(request, url, env) {
+    const authError = await this.requireAdmin(request, env);
+    if (authError) return authError;
+    const response = await this.getAvailability(url, env);
+    if (!response.ok) return response;
+    const { date, slots, contactSlots } = await response.json();
+    return this.json(200, { date, slots: [...slots, ...contactSlots].sort() });
+  }
+
   static async createAdminBlock(request, env) {
     const authError = await this.requireAdmin(request, env);
     if (authError) return authError;
@@ -196,10 +206,24 @@ export class BookingApi {
       const body = await this.readJson(request);
       if (!body || typeof body !== "object" || Array.isArray(body)) throw new Error("予定を確認してください。");
       const date = BookingService.parseDate(body.date, this.daysAhead(env));
-      const { startAt, endAt } = BookingService.parseBlockedPeriod(date, body.startTime, body.endTime);
       const note = typeof body.note === "string" ? body.note.trim() : "";
       if (note.length > 100) throw new Error("予定のメモは100文字以内にしてください。");
-      block = { id: crypto.randomUUID(), startAt, endAt, note, createdAt: BookingService.isoLocal(new Date()) };
+      // Older admin clients omit the type and keep creating private periods.
+      const blockType = body.blockType === undefined ? "private" : body.blockType;
+      if (!["private", "patient"].includes(blockType)) throw new Error("私用または患者予約を選択してください。");
+      const menu = blockType === "patient" ? body.menu : "";
+      const { startAt, endAt } = blockType === "patient"
+        ? BookingService.parseStart(date, body.startTime, BookingService.parseBookableMenu(menu).duration)
+        : BookingService.parseBlockedPeriod(date, body.startTime, body.endTime);
+      const customerName = blockType === "patient" && typeof body.customerName === "string" ? body.customerName.trim() : "";
+      const phone = blockType === "patient" && typeof body.phone === "string" ? body.phone.trim() : "";
+      if (blockType === "patient") {
+        if (!customerName || customerName.length > 80) throw new Error("患者さまのお名前を入力してください(80文字以内)。");
+        if (body.phone !== undefined && typeof body.phone !== "string") throw new Error("電話番号を確認してください。");
+        if (phone && !BookingService.isValidPhone(phone)) throw new Error("電話番号を確認してください。");
+      }
+      block = { id: crypto.randomUUID(), startAt, endAt, note, blockType, customerName, phone, menu,
+        createdAt: BookingService.isoLocal(new Date()) };
     } catch (error) {
       return this.json(400, { error: error.message || "予定を確認してください。" });
     }

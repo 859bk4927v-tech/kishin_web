@@ -894,6 +894,17 @@ site-header {
   grid-column: 1 / -1;
 }
 
+.admin-block-patient:not([hidden]) {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 14px;
+}
+.admin-block-time-fields:not([hidden]) { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.admin-block-form { scroll-margin-top: 150px; }
+.admin-page .calendar-slot { width: 100%; min-height: 48px; }
+.calendar-buffer { background: #eef0ed; color: var(--ink-soft); font-size: 0.7rem; }
+
 .booking-list {
   display: grid;
   gap: 14px;
@@ -1498,6 +1509,10 @@ site-footer {
   cursor: pointer;
 }
 .calendar-block:hover { background: #ead8be; }
+.calendar-block.is-patient { background: var(--green-100); color: var(--green-900); overflow-wrap: anywhere; }
+.calendar-block.is-patient:hover { background: #cfe0d7; }
+.block-start .calendar-block.is-patient { border-top-color: var(--green-700); }
+.block-continuation .calendar-block.is-patient { border-left-color: var(--green-700); }
 .block-start .calendar-block { border-top: 3px solid var(--gold); }
 .block-continuation .calendar-block { border-left: 3px solid var(--gold); }
 .admin-page .week-calendar { min-width: 840px; }
@@ -1535,6 +1550,7 @@ site-footer {
 
 @media (max-width: 560px) {
   .admin-block-fields { grid-template-columns: 1fr; }
+  .admin-block-time-fields:not([hidden]) { grid-template-columns: 1fr; }
   .admin-block-form { padding: 18px; }
   .calendar-field { padding: 14px 10px; }
   .calendar-range { order: -1; flex-basis: 100%; font-size: 0.9rem; }
