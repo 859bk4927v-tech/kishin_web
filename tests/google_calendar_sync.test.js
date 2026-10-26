@@ -218,6 +218,7 @@ test('a timeout after Google accepts a creation reuses the event ID and recovers
   await Sync.run(envFor(db));
   const originalId = JSON.parse(calls[1].body).id;
   assert(!state(db).last_error.includes('secret-key'));
+  assert.equal(state(db).last_error,'Googleカレンダーとの通信を完了できませんでした。（event-write/Error）');
   db.sqlite.exec('UPDATE google_calendar_sync SET next_attempt_at=0');
   t.mock.method(globalThis, 'fetch', async (url, options) => {
     assert(url.endsWith('/' + originalId));

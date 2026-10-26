@@ -21,7 +21,8 @@ export class GoogleCalendarSync {
     } catch { throw new Error('GoogleサービスアカウントのJSON設定を確認してください。'); }
   }
 
-  static async accessToken(env) {
+  static async accessToken(env, trace = () => {}) {
+    trace('credentials');
     const account = this.credentials(env);
     const header = base64url(encoder.encode(JSON.stringify({ alg: 'RS256', typ: 'JWT' })));
     const now = Math.floor(Date.now() / 1000);
@@ -35,7 +36,9 @@ export class GoogleCalendarSync {
         { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']);
     } catch { throw new Error('Googleサービスアカウントの秘密鍵を確認してください。'); }
     const unsigned = `${header}.${claim}`;
+    trace('sign');
     const signature = new Uint8Array(await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, encoder.encode(unsigned)));
+    trace('oauth');
     const response = await fetch(TOKEN_URL, {
       // Workers supports manual redirects, not redirect: 'error'. Non-2xx responses fail below.
       method: 'POST', redirect: 'manual', signal: AbortSignal.timeout(8000),
@@ -69,7 +72,8 @@ export class GoogleCalendarSync {
     };
   }
 
-  static async syncJob(db, job, calendarId, token) {
+  static async syncJob(db, job, calendarId, token, trace = () => {}) {
+    trace('source');
     const table = job.source_type === 'booking' ? 'bookings' : 'blocked_periods';
     const row = await db.prepare(`SELECT * FROM ${table} WHERE id=?`).bind(job.source_id).first();
     const remove = !row || (job.source_type === 'booking' && row.status !== 'confirmed');
@@ -81,6 +85,7 @@ export class GoogleCalendarSync {
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(etag ? { 'If-Match': etag } : {}) },
       ...(body ? { body: JSON.stringify(body) } : {})
     });
+    trace('event-read');
     const found = await call(url);
     let existing;
     if (found.ok) {
@@ -91,6 +96,7 @@ export class GoogleCalendarSync {
       }
     } else if (![404, 410].includes(found.status)) throw new Error(`Google予定取得 HTTP ${found.status}`);
     if (remove && (!existing || existing.status === 'cancelled')) return;
+    trace('event-write');
     let response;
     if (remove) response = await call(url, 'DELETE', null, existing.etag);
     else if (existing) response = await call(url, 'PUT', this.event(row, job), existing.etag);
@@ -130,14 +136,17 @@ export class GoogleCalendarSync {
           candidate.source_type, candidate.source_id, candidate.version, now).first();
       if (!job) continue;
       let error = '';
+      let stage = 'config';
+      const trace = value => { stage = value; };
       try {
         if (job.calendar_id !== calendar) throw new Error('同期先カレンダーIDの変更には移行作業が必要です。');
-        token ||= await this.accessToken(env);
-        await this.syncJob(db, job, calendar, token);
+        token ||= await this.accessToken(env, trace);
+        await this.syncJob(db, job, calendar, token, trace);
       } catch (failure) {
         // Persist only our controlled messages; never Google response bodies, keys or contact data.
+        const kind = ['TypeError', 'OperationError', 'InvalidAccessError', 'TimeoutError', 'AbortError', 'SyntaxError'].includes(failure?.name) ? failure.name : 'Error';
         error = /^(Google(?:認証|予定取得|予定反映) HTTP \d{3}|Googleサービスアカウントの(?:JSON設定|秘密鍵)を確認してください。|Google認証の応答を確認できません。|同期先の予定を確認できません。|同期先カレンダーIDの変更には移行作業が必要です。)$/.test(failure?.message)
-          ? failure.message : 'Googleカレンダーとの通信を完了できませんでした。';
+          ? failure.message : `Googleカレンダーとの通信を完了できませんでした。（${stage}/${kind}）`;
       }
       const next = Date.now() + Math.min(3600000, 30000 * 2 ** Math.min(job.attempts, 7));
       const completed = await db.prepare(`UPDATE google_calendar_sync SET
