@@ -4,6 +4,7 @@
   "main": "src/worker.js",
   "compatibility_date": "2026-09-25",
   "workers_dev": true,
+  "triggers": { "crons": ["*/5 * * * *"] },
   "routes": [
     { "pattern": "yomon-harikyu.com/*", "zone_name": "yomon-harikyu.com" },
     { "pattern": "www.yomon-harikyu.com/*", "zone_name": "yomon-harikyu.com" }
@@ -29,6 +30,7 @@
   "vars": {
     "BOOKING_DAYS_AHEAD": "60",
     "SITE_URL": "https://yomon-harikyu.com",
-    "LINE_MINIAPP_CHANNEL_ID": "2011966875"
+    "LINE_MINIAPP_CHANNEL_ID": "2011966875",
+    "GOOGLE_CALENDAR_ID": "yomon.harikyu@gmail.com"
   }
 }

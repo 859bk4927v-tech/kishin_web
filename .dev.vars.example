@@ -6,3 +6,7 @@ TURNSTILE_SECRET=replace-with-your-turnstile-secret
 # LINE MINI App channel ID (not the LIFF ID or the Messaging API channel ID).
 # Match the published LIFF app used by public/js/line_miniapp.js.
 LINE_MINIAPP_CHANNEL_ID=2011966875
+# Optional Google Calendar integration. Use test credentials/calendar locally.
+GOOGLE_CALENDAR_ID=
+# Set the complete downloaded service-account JSON as a single-line JSON string.
+GOOGLE_SERVICE_ACCOUNT_JSON=
