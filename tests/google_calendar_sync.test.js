@@ -31,7 +31,7 @@ function mockGoogle(t, db, handler) {
   t.mock.method(globalThis, 'fetch', async (url, options) => {
     assert.equal(new URL(url).hostname, 'www.googleapis.com');
     assert.equal(options.headers.Authorization, 'Bearer test-only-google-token');
-    assert.equal(options.redirect, 'error');
+    assert.equal(options.redirect, 'manual');
     calls.push({ url, ...options });
     return handler(url, options, calls);
   });
@@ -284,6 +284,7 @@ test('service account authentication signs the expected JWT and validates Google
   const env = { GOOGLE_SERVICE_ACCOUNT_JSON: JSON.stringify({ type:'service_account', client_email:'test@project.iam.gserviceaccount.com', private_key:`-----BEGIN PRIVATE KEY-----\n${encoded}\n-----END PRIVATE KEY-----`, token_uri:'https://evil.test' }) };
   t.mock.method(globalThis, 'fetch', async (url, options) => {
     assert.equal(url, 'https://oauth2.googleapis.com/token');
+    assert.equal(options.redirect, 'manual');
     const [header,claim,signature] = options.body.get('assertion').split('.');
     assert.equal(await crypto.subtle.verify('RSASSA-PKCS1-v1_5',keys.publicKey,Buffer.from(signature,'base64url'),new TextEncoder().encode(`${header}.${claim}`)),true);
     const data = JSON.parse(Buffer.from(claim,'base64url'));
@@ -292,9 +293,20 @@ test('service account authentication signs the expected JWT and validates Google
     return Response.json({ access_token:'local-token',token_type:'Bearer' });
   });
   assert.equal(await Sync.accessToken(env), 'local-token');
+  t.mock.method(globalThis, 'fetch', async () => new Response(null, {status:302,headers:{Location:'https://unexpected.example/'}}));
+  await assert.rejects(() => Sync.accessToken(env), /^Error: Google認証 HTTP 302$/);
   t.mock.method(globalThis, 'fetch', async () => new Response('upstream-secret', {status:400}));
   await assert.rejects(() => Sync.accessToken(env), /^Error: Google認証 HTTP 400$/);
   await assert.rejects(() => Sync.accessToken({ GOOGLE_SERVICE_ACCOUNT_JSON:'broken' }), /JSON設定/);
+});
+
+test('Google event redirects remain pending and never follow the redirect target', async t => {
+  const db=database(t); add(db);
+  const calls=mockGoogle(t,db,() => new Response(null,{status:302,headers:{Location:'https://unexpected.example/'}}));
+  await Sync.run(envFor(db),1);
+  assert.equal(calls.length,1);
+  assert.equal(state(db).pending,1);
+  assert.equal(state(db).last_error,'Google予定取得 HTTP 302');
 });
 
 test('status and manual retries require admin authentication and reveal no patient data', async t => {

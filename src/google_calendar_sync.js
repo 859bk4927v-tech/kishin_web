@@ -37,7 +37,8 @@ export class GoogleCalendarSync {
     const unsigned = `${header}.${claim}`;
     const signature = new Uint8Array(await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, encoder.encode(unsigned)));
     const response = await fetch(TOKEN_URL, {
-      method: 'POST', redirect: 'error', signal: AbortSignal.timeout(8000),
+      // Workers supports manual redirects, not redirect: 'error'. Non-2xx responses fail below.
+      method: 'POST', redirect: 'manual', signal: AbortSignal.timeout(8000),
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: `${unsigned}.${base64url(signature)}` })
     });
@@ -76,7 +77,7 @@ export class GoogleCalendarSync {
     const collection = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`;
     const url = `${collection}/${id}`;
     const call = (target, method = 'GET', body, etag) => fetch(target, {
-      method, redirect: 'error', signal: AbortSignal.timeout(8000),
+      method, redirect: 'manual', signal: AbortSignal.timeout(8000),
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(etag ? { 'If-Match': etag } : {}) },
       ...(body ? { body: JSON.stringify(body) } : {})
     });
