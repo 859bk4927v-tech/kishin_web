@@ -310,6 +310,17 @@ test('Google event redirects remain pending and never follow the redirect target
   assert.equal(state(db).last_error,'Google予定取得 HTTP 302');
 });
 
+test('Google permission failures retain only allowlisted reason codes, never upstream details', async t => {
+  const db=database(t); add(db);
+  mockGoogle(t,db,(_,options) => options.method==='GET' ? new Response(null,{status:404}) :
+    Response.json({error:{message:'private appointment or key',errors:[{reason:'requiredAccessLevel',message:'private details'}]}},{status:403}));
+  await Sync.run(envFor(db),1);
+  assert.equal(state(db).last_error,'Google予定反映 HTTP 403 [requiredAccessLevel]');
+  assert.equal(state(db).pending,1);
+  const error=await Sync.apiError('Google予定反映',Response.json({error:{errors:[{reason:'private details'}]}},{status:403}));
+  assert.equal(error.message,'Google予定反映 HTTP 403');
+});
+
 test('status and manual retries require admin authentication and reveal no patient data', async t => {
   const db = database(t); add(db);
   const env = { ...envFor(db), ADMIN_TOKEN:'test-only-admin' };

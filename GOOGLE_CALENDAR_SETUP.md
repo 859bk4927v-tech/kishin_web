@@ -5,7 +5,7 @@
 ## 設定
 
 1. Google Calendar APIを有効化したプロジェクトでサービスアカウントを作成します。
-2. 対象カレンダーをサービスアカウントのメールアドレスに共有し、「予定の変更」を許可します。カレンダーの所有者は院長のままです。Google Cloudプロジェクトの「オーナー」権限やドメイン全体の委任は不要です。
+2. 対象カレンダーをサービスアカウントのメールアドレスに共有し、「予定の詳細を変更、表示可能」（限定公開の予定も扱える権限）を許可します。「変更可能（限定公開の予定を、予定の有無としてのみ表示）」では、今回の限定公開の予約を扱えません。「予定の変更および共有の管理」までは不要です。カレンダーの所有者は院長のままです。Google Cloudプロジェクトの「オーナー」権限やドメイン全体の委任は不要です。
 3. Workers `kishin-web` のProductionに以下を設定します。
    - Secret `GOOGLE_SERVICE_ACCOUNT_JSON`: ダウンロードしたJSON全体。秘密鍵はGit・HTML・チャットに含めません。
    - Variable `GOOGLE_CALENDAR_ID`: カレンダーの設定→カレンダーの統合→カレンダーID。現在の公開設定は `yomon.harikyu@gmail.com` です。`primary` やカレンダーのURLは使いません。
@@ -46,7 +46,7 @@ GoogleのイベントIDは予約の種類とIDから毎回同じ値を作りま�
 
 `synced` は最後にGoogle APIへの反映に成功したキュー項目数で、削除完了項目も含みます。スマホやTimeTreeでの表示完了を保証する値ではありません。`configured` は設定値の有無であり、共有権限や秘密鍵の正しさは最初の同期で確認されます。
 
-Googleからのエラー本文や資格情報は保存せず、HTTPステータスなどの制御されたエラーのみ記録します。繰り返し失敗する場合は、共有先メール・権限・カレンダーID・JSONキーを確認します。
+Googleからのエラー本文や資格情報は保存せず、HTTPステータス・許可リストにある理由コード・失敗段階などの制御されたエラーのみ記録します。繰り返し失敗する場合は、共有先メール・権限・カレンダーID・JSONキーを確認します。
 
 同期済みのカレンダーIDを変更しても古いカレンダーの予定は自動移動しません。誤った場所への複製を防ぐため、キューに保存した同期先と異なる場合は停止します。変更には古い予定の整理を含めた移行が必要です。
 
@@ -56,6 +56,7 @@ Googleからのエラー本文や資格情報は保存せず、HTTPステータ�
 
 ## 公式仕様
 
+- https://support.google.com/calendar/answer/37082?hl=ja
 - https://developers.google.com/identity/protocols/oauth2/service-account
 - https://developers.google.com/workspace/calendar/api/v3/reference/events/insert
 - https://developers.google.com/workspace/calendar/api/v3/reference/events/update

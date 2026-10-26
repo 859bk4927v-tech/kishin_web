@@ -6,6 +6,18 @@ const encoder = new TextEncoder();
 const base64url = bytes => btoa(String.fromCharCode(...bytes)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
 
 export class GoogleCalendarSync {
+  static async apiError(label, response) {
+    // Keep only documented error codes, never Google's free-text message or response body.
+    const allowed = ['forbidden', 'requiredAccessLevel', 'insufficientPermissions', 'forbiddenForNonOrganizer',
+      'forbiddenForServiceAccounts', 'rateLimitExceeded', 'userRateLimitExceeded', 'quotaExceeded', 'accessNotConfigured'];
+    let reason = '';
+    try {
+      const data = await response.json();
+      reason = data.error?.errors?.map(item => item.reason).find(value => allowed.includes(value)) || '';
+    } catch {}
+    return new Error(`${label} HTTP ${response.status}${reason ? ` [${reason}]` : ''}`);
+  }
+
   static configured(env) {
     return typeof env.GOOGLE_SERVICE_ACCOUNT_JSON === 'string' && !!env.GOOGLE_SERVICE_ACCOUNT_JSON.trim() &&
       typeof env.GOOGLE_CALENDAR_ID === 'string' && !!env.GOOGLE_CALENDAR_ID.trim();
@@ -45,7 +57,7 @@ export class GoogleCalendarSync {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: `${unsigned}.${base64url(signature)}` })
     });
-    if (!response.ok) throw new Error(`Google認証 HTTP ${response.status}`);
+    if (!response.ok) throw await this.apiError('Google認証', response);
     let data;
     try { data = await response.json(); } catch { throw new Error('Google認証の応答を確認できません。'); }
     if (typeof data.access_token !== 'string' || !data.access_token || data.token_type?.toLowerCase() !== 'bearer') {
@@ -94,7 +106,7 @@ export class GoogleCalendarSync {
         // Deleted Google events may return a tombstone with only an ID.
         if (!(remove && existing.status === 'cancelled')) throw new Error('同期先の予定を確認できません。');
       }
-    } else if (![404, 410].includes(found.status)) throw new Error(`Google予定取得 HTTP ${found.status}`);
+    } else if (![404, 410].includes(found.status)) throw await this.apiError('Google予定取得', found);
     if (remove && (!existing || existing.status === 'cancelled')) return;
     trace('event-write');
     let response;
@@ -104,7 +116,7 @@ export class GoogleCalendarSync {
     // A concurrent insert (409), edit (412) or uncertain delivery stays pending.
     // The next attempt reads the deterministic ID and reconciles the latest DB state.
     if (!response.ok && !(remove && [404, 410].includes(response.status))) {
-      throw new Error(`Google予定反映 HTTP ${response.status}`);
+      throw await this.apiError('Google予定反映', response);
     }
   }
 
@@ -145,7 +157,7 @@ export class GoogleCalendarSync {
       } catch (failure) {
         // Persist only our controlled messages; never Google response bodies, keys or contact data.
         const kind = ['TypeError', 'OperationError', 'InvalidAccessError', 'TimeoutError', 'AbortError', 'SyntaxError'].includes(failure?.name) ? failure.name : 'Error';
-        error = /^(Google(?:認証|予定取得|予定反映) HTTP \d{3}|Googleサービスアカウントの(?:JSON設定|秘密鍵)を確認してください。|Google認証の応答を確認できません。|同期先の予定を確認できません。|同期先カレンダーIDの変更には移行作業が必要です。)$/.test(failure?.message)
+        error = /^(Google(?:認証|予定取得|予定反映) HTTP \d{3}(?: \[(?:forbidden|requiredAccessLevel|insufficientPermissions|forbiddenForNonOrganizer|forbiddenForServiceAccounts|rateLimitExceeded|userRateLimitExceeded|quotaExceeded|accessNotConfigured)\])?|Googleサービスアカウントの(?:JSON設定|秘密鍵)を確認してください。|Google認証の応答を確認できません。|同期先の予定を確認できません。|同期先カレンダーIDの変更には移行作業が必要です。)$/.test(failure?.message)
           ? failure.message : `Googleカレンダーとの通信を完了できませんでした。（${stage}/${kind}）`;
       }
       const next = Date.now() + Math.min(3600000, 30000 * 2 ** Math.min(job.attempts, 7));
