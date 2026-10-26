@@ -56,6 +56,20 @@ test('reschedule form supports legacy menus missing from the public menu catalog
   assert.equal(card.form.children.find(node => node.id === 'rescheduleTime').max, '22:30');
 });
 
+test('Google appointment details render as text and direct changes to Google without a website delete button',()=>{
+  const node=type=>({type,children:[],append(...children){this.children.push(...children);},replaceChildren(...children){this.children=children;},addEventListener(){}});
+  const document={getElementById:()=>null,createElement:node};
+  const sandbox=context(()=>{},document);load(sandbox,'weekly_calendar.js','admin_page.js');
+  const page=vm.runInContext('Object.create(AdminPage.prototype)',sandbox);
+  let opened=false;Object.assign(page,{document,dialogNotice:{},bookingList:node('div'),dialog:{showModal(){opened=true;}}});
+  const item={date:'2030-01-01',startTime:'12:00',endTime:'13:00',blockType:'google',note:'<img src=x onerror=alert(1)>'};
+  page.openBlock(item);assert(opened);
+  const flatten=n=>[n,...n.children.flatMap(flatten)];const nodes=flatten(page.bookingList);
+  assert(nodes.some(n=>n.textContent===item.note));assert(!nodes.some(n=>n.type==='button'));assert(!nodes.some(n=>n.innerHTML));
+  assert(nodes.some(n=>n.textContent?.includes('Googleカレンダーで操作')));
+  page.openBlock({...item,blockType:'private'});assert(flatten(page.bookingList).some(n=>n.type==='button'));
+});
+
 test('repeated submit events while saving send only one booking request', async () => {
   let finish;
   let requests = 0;

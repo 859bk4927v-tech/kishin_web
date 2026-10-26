@@ -185,7 +185,10 @@ class AdminPage {
       '予約管理 : ' + WeeklyCalendar.rangeLabel(this.dateInput.value), (cell, date, time) => {
         const booking = active.find(item => item.date === date && item.startTime <= time && time < item.endTime);
         if (!booking) {
-          const block = blocks.find(item => item.date === date && item.startTime <= time && time < item.endTime);
+          const block = blocks.find(item => item.date === date && time < item.endTime &&
+            (item.blockType === 'google'
+              ? Number(item.startTime.slice(0,2))*60+Number(item.startTime.slice(3)) < Number(time.slice(0,2))*60+Number(time.slice(3))+30
+              : item.startTime <= time));
           if (block) {
             const patient = block.blockType === 'patient';
             const button = this.createButton('', patient ? 'calendar-block is-patient' : 'calendar-block', () => this.openBlock(block));
@@ -195,9 +198,9 @@ class AdminPage {
               nameLabel.textContent = block.customerName;
               button.append(nameLabel);
             } else {
-              button.textContent = '私用';
+              button.textContent = block.blockType === 'google' ? 'Google' : '私用';
             }
-            button.setAttribute('aria-label', WeeklyCalendar.displayText(`${WeeklyCalendar.dateLabel(date)} ${block.startTime}~${block.endTime} ${patient ? block.customerName + ' 患者予約' : '私用の予定'}を開く`));
+            button.setAttribute('aria-label', WeeklyCalendar.displayText(`${WeeklyCalendar.dateLabel(date)} ${block.startTime}~${block.endTime} ${patient ? block.customerName + ' 患者予約' : block.blockType === 'google' ? 'Googleの予定' : '私用の予定'}を開く`));
             cell.className = time === block.startTime ? 'block-start' : 'block-continuation';
             cell.append(button);
             return;
@@ -241,7 +244,12 @@ class AdminPage {
     this.calendar.replaceChildren(table);
     this.document.getElementById('adminWeekLabel').textContent = WeeklyCalendar.rangeLabel(this.dateInput.value);
     const patientBlocks = blocks.filter(block => block.blockType === 'patient').length;
-    this.calendarStatus.textContent = appJa.format(`この週の予約 : ${active.length + patientBlocks}件・私用 : ${blocks.length - patientBlocks}件`);
+    const googleBlocks = blocks.filter(block => block.blockType === 'google');
+    const conflicts = googleBlocks.filter(block => [...active,...blocks.filter(item => item.blockType !== 'google')]
+      .some(item => item.date === block.date && item.startTime < block.endTime && item.endTime > block.startTime)).length;
+    this.calendarStatus.textContent = appJa.format(`この週の予約 : ${active.length + patientBlocks}件・私用 : ${blocks.length - patientBlocks - googleBlocks.length}件` +
+      (googleBlocks.length ? `・Google : ${googleBlocks.length}件` : '') +
+      (conflicts ? `・Google予定との重複 : ${conflicts}件（要確認）` : ''));
     const cancelled = bookings.filter(booking => booking.status === 'cancelled');
     this.cancelledList.replaceChildren();
     cancelled.forEach(booking => {
@@ -280,16 +288,18 @@ class AdminPage {
     const heading = this.document.createElement('h2');
     heading.id = 'booking-detail-title';
     const patient = block.blockType === 'patient';
-    heading.textContent = patient ? '患者予約' : '私用の予定';
+    const google = block.blockType === 'google';
+    heading.textContent = patient ? '患者予約' : google ? 'Googleの予定' : '私用の予定';
     card.append(heading, this.createDetailsList([
       ['日時', WeeklyCalendar.displayText(`${WeeklyCalendar.dateLabel(block.date)} ${block.startTime}~${block.endTime}`)],
       ...(patient ? [['施術コース', block.menuName || '未設定'], ['所要時間', `${block.durationMinutes}分`],
         ['患者さまのお名前', block.customerName], ['電話番号', block.phone || '未入力']] : []),
-      ['メモ', block.note || 'なし']
+      [google ? '予定名' : 'メモ', block.note || 'なし'],
+      ...(google ? [['変更・削除', 'Googleカレンダーで操作してください。通常5分ほどで反映されます。']] : [])
     ]));
     const actions = this.document.createElement('div');
     actions.className = 'booking-actions';
-    actions.append(this.createButton(patient ? 'この患者予約を取り消す' : 'この予定を解除', 'btn btn-danger', () => this.deleteBlock(block)));
+    if (!google) actions.append(this.createButton(patient ? 'この患者予約を取り消す' : 'この予定を解除', 'btn btn-danger', () => this.deleteBlock(block)));
     card.append(actions);
     this.bookingList.append(card);
     this.dialog.showModal();

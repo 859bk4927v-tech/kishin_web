@@ -1,6 +1,6 @@
 # Googleカレンダーへの予約自動反映
 
-予約システムからGoogleカレンダーへの一方向連携です。予約の変更・取り消しは院長用ページから操作してください。Googleカレンダーで直接編集した内容は予約サイトへ反映されず、次の同期で上書きされる場合があります。外部の空き時間から予約可否を決める処理は追加していません。
+サイトで登録した予約・私用をGoogleカレンダーに反映し、Googleで新規作成した予定はサイトの予約不可時間として取り込みます。サイト由来の患者予約の変更・取り消しは院長用ページ、Google由来の予定の変更・削除はGoogleで操作してください。サイト由来の予約をGoogleで編集しても予約情報自体は変更されません。
 
 ## 設定
 
@@ -17,7 +17,7 @@ APIの認証先は `https://oauth2.googleapis.com/token` に固定していま�
 
 1. テストと静的HTMLのチェックを実行し、必要な変更をコミットしてpushします。
 2. 本番D1のバックアップを取得します。
-3. `NODE_EXTRA_CA_CERTS=/etc/ssl/cert.pem npm run db:migrate:remote` で `0007_add_google_calendar_sync.sql` を適用します。
+3. `NODE_EXTRA_CA_CERTS=/etc/ssl/cert.pem npm run db:migrate:remote` で未適用のマイグレーション（`0007_add_google_calendar_sync.sql`、`0008_import_google_calendar.sql`）を適用します。
 4. `NODE_EXTRA_CA_CERTS=/etc/ssl/cert.pem npm run deploy` で公開します。
 5. 管理者認証付きで `GET /api/admin/calendar-sync` を取得して、設定・件数を確認します。
 
@@ -31,6 +31,16 @@ APIの認証先は `https://oauth2.googleapis.com/token` に固定していま�
 - 電話番号・メールアドレス・メモ・LINEユーザーIDはGoogleに送りません。ゲスト招待や患者へのメール送信は行いません。
 - 終了日時は予約データの実際の時刻です。30分の準備時間は予約時間に足しません。24:00終了は翌日00:00として送ります。
 
+## Googleからの取り込み
+
+- 対象カレンダーにGoogleで作成した「予定あり」の時間を取り込み、Web・LINE予約、院長の患者予約・私用登録の重複判定に使います。通常5分ほどで反映され、同期前に開いた画面からの予約も保存時に再判定します。反映前の時間差はあるため、Googleとサイトへの同時入力には注意してください。
+- 予定の変更・削除・「予定なし」への変更も反映します。終日は日本時間の0時から翌0時まで、繰り返しはGoogleが展開した各回を扱います。取り込み範囲は本日から予約受付期間の少し先までで、毎回更新します。大量の予定では複数回の定期処理が必要です。
+- Google予定は準備時間を足さず、指定された開始〜終了のみを埋めます。患者の氏名やコースを推測して患者予約を作ることはありません。LINE通知も送りません。
+- 院長画面では「Google」と表示し、タップすると予定名・時間・Googleで変更する案内を表示します。一般の予約画面には予定名を返しません。
+- サイトから書き出したイベントは識別情報とイベントIDの両方で除外し、再取り込みや同期ループを防ぎます。Google取り込み用テーブルからは書き出しキューを作りません。
+- 既存予約とGoogle予定が重なっても予約を取り消さず、院長画面に重複件数を表示します。院長が調整してください。
+- 全ページ取得完了後に一括で公開するため、途中の通信・DBエラーで既存の予約不可時間を消しません。直前の同期内容を維持し、次回取得をやり直します。
+
 ## 障害・重複・再送
 
 予約の保存と同じD1トランザクション内で、トリガーが同期キューを更新します。削除した予定のIDも残るので、通信障害中の取り消しを後で反映できます。予約のレスポンスはGoogleの応答を待たず返し、Google側の障害によって予約が失敗したことにはしません。
@@ -41,8 +51,8 @@ GoogleのイベントIDは予約の種類とIDから毎回同じ値を作りま�
 
 管理者認証が必要なAPI:
 
-- `GET /api/admin/calendar-sync`: `configured`, `pending`, `synced`, `failed` の集計のみ。患者情報・秘密鍵は返しません。
-- `POST /api/admin/calendar-sync`: 未反映分のバックグラウンド処理を要求（202）。設定不足は503。再送間隔を無視する操作ではありません。
+- `GET /api/admin/calendar-sync`: 書き出しの `configured`, `pending`, `synced`, `failed` と、取り込みの `import`（`syncedAt`, `error`, `inProgress`, `count`）。予定名・患者情報・秘密鍵は返しません。
+- `POST /api/admin/calendar-sync`: 書き出しとGoogle取り込みのバックグラウンド処理を要求（202）。設定不足は503。書き出しの再送間隔を無視する操作ではありません。
 
 `synced` は最後にGoogle APIへの反映に成功したキュー項目数で、削除完了項目も含みます。スマホやTimeTreeでの表示完了を保証する値ではありません。`configured` は設定値の有無であり、共有権限や秘密鍵の正しさは最初の同期で確認されます。
 
@@ -61,3 +71,4 @@ Googleからのエラー本文や資格情報は保存せず、HTTPステータ�
 - https://developers.google.com/workspace/calendar/api/v3/reference/events/insert
 - https://developers.google.com/workspace/calendar/api/v3/reference/events/update
 - https://developers.google.com/workspace/calendar/api/v3/reference/events/delete
+- https://developers.google.com/workspace/calendar/api/v3/reference/events/list

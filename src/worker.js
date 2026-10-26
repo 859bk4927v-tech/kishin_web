@@ -1,6 +1,7 @@
 import { BookingApi } from "./booking_api.js";
 import { SiteSeo } from "./site_seo.js";
 import { GoogleCalendarSync } from "./google_calendar_sync.js";
+import { GoogleCalendarImport } from "./google_calendar_import.js";
 
 class KishinWorker {
   static async fetch(request, env, ctx) {
@@ -11,9 +12,12 @@ class KishinWorker {
       if (request.method === 'POST') {
         if (!GoogleCalendarSync.configured(env)) return BookingApi.json(503, { error: 'Googleカレンダーの設定が未完了です。' });
         ctx.waitUntil(GoogleCalendarSync.run(env, 1));
+        ctx.waitUntil(GoogleCalendarImport.run(env));
         return BookingApi.json(202, { status: 'accepted' });
       }
-      if (request.method === 'GET') return BookingApi.json(200, await GoogleCalendarSync.status(env));
+      if (request.method === 'GET') return BookingApi.json(200, {
+        ...await GoogleCalendarSync.status(env), import:await GoogleCalendarImport.status(env)
+      });
       return BookingApi.json(405, { error: '対応していない操作です。' });
     }
     if (url.pathname.startsWith("/api/")) {
@@ -33,5 +37,6 @@ export default {
   },
   scheduled(event, env, ctx) {
     ctx.waitUntil(GoogleCalendarSync.run(env, 5));
+    ctx.waitUntil(GoogleCalendarImport.run(env));
   }
 };

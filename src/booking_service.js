@@ -245,7 +245,9 @@ export class BookingService {
       SELECT start_at, end_at,
         CASE WHEN block_type = 'patient' AND menu != '' THEN 'booking' ELSE 'block' END AS period_type
       FROM blocked_periods WHERE start_at < ? AND end_at > ?
-    `).bind(excludeId || '', dayEnd, dayStart, dayEnd, dayStart).all();
+      UNION ALL
+      SELECT start_at,end_at,'block' AS period_type FROM google_calendar_busy WHERE start_at < ? AND end_at > ?
+    `).bind(excludeId || '', dayEnd, dayStart, dayEnd, dayStart, dayEnd, dayStart).all();
     const slots = [];
     const contactSlots = [];
     for (let startMinute = OPENING_MINUTE; startMinute <= LAST_START_MINUTE; startMinute += SLOT_MINUTES) {
@@ -281,6 +283,7 @@ export class BookingService {
       AND NOT EXISTS (
         SELECT 1 FROM blocked_periods WHERE ${BLOCK_OVERLAP}
       )
+      AND NOT EXISTS (SELECT 1 FROM google_calendar_busy WHERE start_at < ? AND end_at > ?)
       ON CONFLICT(idempotency_key) DO NOTHING
       RETURNING *
     `).bind(
@@ -299,7 +302,8 @@ export class BookingService {
       this.addMinutes(booking.endAt, BOOKING_BUFFER_MINUTES),
       this.addMinutes(booking.startAt, -BOOKING_BUFFER_MINUTES),
       this.addMinutes(booking.endAt, BOOKING_BUFFER_MINUTES), booking.endAt,
-      this.addMinutes(booking.startAt, -BOOKING_BUFFER_MINUTES), booking.startAt
+      this.addMinutes(booking.startAt, -BOOKING_BUFFER_MINUTES), booking.startAt,
+      booking.endAt, booking.startAt
     ).first();
 
     if (inserted) return { row: inserted, created: true };
@@ -343,12 +347,13 @@ export class BookingService {
         AND NOT EXISTS (
           SELECT 1 FROM blocked_periods WHERE ${BLOCK_OVERLAP}
         )
+        AND NOT EXISTS (SELECT 1 FROM google_calendar_busy WHERE start_at < ? AND end_at > ?)
       RETURNING id
     `).bind(
       startAt, endAt, this.isoLocal(new Date()), bookingId, bookingId,
       this.addMinutes(endAt, BOOKING_BUFFER_MINUTES), this.addMinutes(startAt, -BOOKING_BUFFER_MINUTES),
       this.addMinutes(endAt, BOOKING_BUFFER_MINUTES), endAt,
-      this.addMinutes(startAt, -BOOKING_BUFFER_MINUTES), startAt
+      this.addMinutes(startAt, -BOOKING_BUFFER_MINUTES), startAt, endAt, startAt
     ).first();
   }
 
@@ -358,7 +363,13 @@ export class BookingService {
     const result = await db.prepare(
       "SELECT * FROM blocked_periods WHERE start_at >= ? AND start_at < ? ORDER BY start_at"
     ).bind(startAt, endAt).all();
-    return result.results.map((row) => this.toBlock(row));
+    const external = await db.prepare('SELECT * FROM google_calendar_busy WHERE start_at < ? AND end_at > ? ORDER BY start_at')
+      .bind(endAt,startAt).all();
+    return [...result.results.map((row) => this.toBlock(row)), ...external.results.map(row => ({
+      ...this.toBlock({id:`google:${row.event_id}`,start_at:row.start_at < startAt ? startAt : row.start_at,
+        end_at:row.end_at > endAt ? endAt : this.isoLocal(new Date(Math.ceil(Date.parse(row.end_at)/60000)*60000)),note:row.title,block_type:'google'}),
+      source:'google',readOnly:true
+    }))];
   }
 
   static async createBlock(db, block) {
@@ -375,11 +386,12 @@ export class BookingService {
       AND NOT EXISTS (
         SELECT 1 FROM blocked_periods WHERE ${BLOCK_OVERLAP}
       )
+      AND NOT EXISTS (SELECT 1 FROM google_calendar_busy WHERE start_at < ? AND end_at > ?)
       RETURNING *
     `).bind(
       block.id, block.startAt, block.endAt, block.note, block.createdAt,
       block.blockType || 'private', block.customerName || '', block.phone || '', block.menu || '',
-      paddedEnd, paddedStart, paddedEnd, block.endAt, paddedStart, block.startAt
+      paddedEnd, paddedStart, paddedEnd, block.endAt, paddedStart, block.startAt, block.endAt, block.startAt
     ).first();
   }
 

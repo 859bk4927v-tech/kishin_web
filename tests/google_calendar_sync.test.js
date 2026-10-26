@@ -5,6 +5,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { GoogleCalendarSync as Sync } from '../src/google_calendar_sync.js';
 import { BookingService } from '../src/booking_service.js';
 import worker from '../src/worker.js';
+import { GoogleCalendarImport } from '../src/google_calendar_import.js';
 
 function database(t, latest = true) {
   const sqlite = new DatabaseSync(':memory:');
@@ -329,7 +330,7 @@ test('status and manual retries require admin authentication and reveal no patie
   }
   const response = await worker.fetch(new Request('https://example.test/api/admin/calendar-sync',{headers:{Authorization:'Bearer test-only-admin'}}),env,{});
   const data = await response.json();
-  assert.deepEqual(data,{configured:true,pending:1,synced:0,failed:0});
+  assert.deepEqual(data,{configured:true,pending:1,synced:0,failed:0,import:{syncedAt:'',error:'',inProgress:false,count:0}});
   assert.equal(response.headers.get('Cache-Control'),'no-store');
   const missing = await worker.fetch(new Request('https://example.test/api/admin/calendar-sync',{method:'POST',headers:{Authorization:'Bearer test-only-admin'}}),{...env,GOOGLE_CALENDAR_ID:''},{});
   assert.equal(missing.status,503);
@@ -340,6 +341,8 @@ test('worker isolates sync failures from successful API responses and cron retri
   const env = { ...envFor(db), ADMIN_TOKEN:'test-only-admin' };
   const jobs = [];
   let runs=0;
+  let imports=0;
+  t.mock.method(GoogleCalendarImport,'run',async () => {imports++;return {status:'failed'};});
   t.mock.method(Sync,'run',async () => {runs++;return {status:'failed'};});
   // Use a fixed open day so the actual API write succeeds independent of the clock.
   t.mock.method(BookingService,'todayJst',() => '2030-01-01');
@@ -349,4 +352,5 @@ test('worker isolates sync failures from successful API responses and cron retri
   await Promise.all(jobs); assert.equal(runs,1); assert.equal(state(db).pending,1);
   worker.scheduled({},env,{waitUntil: job => jobs.push(job)});
   await Promise.all(jobs); assert.equal(runs,2);
+  assert.equal(imports,1);
 });
