@@ -3,9 +3,12 @@ import { SiteSeo } from "./site_seo.js";
 import { GoogleCalendarSync } from "./google_calendar_sync.js";
 import { GoogleCalendarImport } from "./google_calendar_import.js";
 
+import { GoogleCalendarWatch } from "./google_calendar_watch.js";
+
 class KishinWorker {
   static async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    if (url.pathname === GoogleCalendarWatch.path) return GoogleCalendarWatch.receive(request, env, ctx);
     if (url.pathname === '/api/admin/calendar-sync') {
       const authError = await BookingApi.requireAdmin(request, env);
       if (authError) return authError;
@@ -13,10 +16,11 @@ class KishinWorker {
         if (!GoogleCalendarSync.configured(env)) return BookingApi.json(503, { error: 'Googleカレンダーの設定が未完了です。' });
         ctx.waitUntil(GoogleCalendarSync.run(env, 1));
         ctx.waitUntil(GoogleCalendarImport.run(env));
+        ctx.waitUntil(GoogleCalendarWatch.ensure(env));
         return BookingApi.json(202, { status: 'accepted' });
       }
       if (request.method === 'GET') return BookingApi.json(200, {
-        ...await GoogleCalendarSync.status(env), import:await GoogleCalendarImport.status(env)
+        ...await GoogleCalendarSync.status(env), import:await GoogleCalendarImport.status(env), watch:await GoogleCalendarWatch.status(env)
       });
       return BookingApi.json(405, { error: '対応していない操作です。' });
     }
@@ -38,5 +42,6 @@ export default {
   scheduled(event, env, ctx) {
     ctx.waitUntil(GoogleCalendarSync.run(env, 5));
     ctx.waitUntil(GoogleCalendarImport.run(env));
+    ctx.waitUntil(GoogleCalendarWatch.ensure(env));
   }
 };

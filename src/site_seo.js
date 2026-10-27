@@ -60,7 +60,7 @@ export class SiteSeo {
 
     if (url.pathname === "/robots.txt") {
       const rules = published
-        ? `User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: ${origin}/sitemap.xml\n`
+        ? `User-agent: *\nAllow: /\nDisallow: /api/\nAllow: /api/google-calendar/webhook\nSitemap: ${origin}/sitemap.xml\n`
         : "User-agent: *\nDisallow: /\n";
       return new Response(rules, { headers: { ...headers, "Content-Type": "text/plain; charset=utf-8" } });
     }

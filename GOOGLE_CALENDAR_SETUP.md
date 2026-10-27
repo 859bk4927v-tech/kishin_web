@@ -17,7 +17,7 @@ APIの認証先は `https://oauth2.googleapis.com/token` に固定していま�
 
 1. テストと静的HTMLのチェックを実行し、必要な変更をコミットしてpushします。
 2. 本番D1のバックアップを取得します。
-3. `NODE_EXTRA_CA_CERTS=/etc/ssl/cert.pem npm run db:migrate:remote` で未適用のマイグレーション（`0007_add_google_calendar_sync.sql`、`0008_import_google_calendar.sql`）を適用します。
+3. `NODE_EXTRA_CA_CERTS=/etc/ssl/cert.pem npm run db:migrate:remote` で未適用のマイグレーション（`0007_add_google_calendar_sync.sql`、`0008_import_google_calendar.sql`、`0009_google_calendar_watch.sql`）を適用します。
 4. `NODE_EXTRA_CA_CERTS=/etc/ssl/cert.pem npm run deploy` で公開します。
 5. 管理者認証付きで `GET /api/admin/calendar-sync` を取得して、設定・件数を確認します。
 
@@ -33,13 +33,24 @@ APIの認証先は `https://oauth2.googleapis.com/token` に固定していま�
 
 ## Googleからの取り込み
 
-- 対象カレンダーにGoogleで作成した「予定あり」の時間を取り込み、Web・LINE予約、院長の患者予約・私用登録の重複判定に使います。通常5分ほどで反映され、同期前に開いた画面からの予約も保存時に再判定します。反映前の時間差はあるため、Googleとサイトへの同時入力には注意してください。
+- 対象カレンダーにGoogleで作成した「予定あり」の時間を取り込み、Web・LINE予約、院長の患者予約・私用登録の重複判定に使います。Googleの変更通知を受けたら同期を開始し、同期前に開いた画面からの予約も保存時に再判定します。反映前の時間差はあるため、Googleとサイトへの同時入力には注意してください。
 - 予定の変更・削除・「予定なし」への変更も反映します。終日は日本時間の0時から翌0時まで、繰り返しはGoogleが展開した各回を扱います。取り込み範囲は本日から予約受付期間の少し先までで、毎回更新します。大量の予定では複数回の定期処理が必要です。
 - Google予定は準備時間を足さず、指定された開始〜終了のみを埋めます。患者の氏名やコースを推測して患者予約を作ることはありません。LINE通知も送りません。
 - 院長画面では「Google」と表示し、タップすると予定名・時間・Googleで変更する案内を表示します。一般の予約画面には予定名を返しません。
 - サイトから書き出したイベントは識別情報とイベントIDの両方で除外し、再取り込みや同期ループを防ぎます。Google取り込み用テーブルからは書き出しキューを作りません。
 - 既存予約とGoogle予定が重なっても予約を取り消さず、院長画面に重複件数を表示します。院長が調整してください。
 - 全ページ取得完了後に一括で公開するため、途中の通信・DBエラーで既存の予約不可時間を消しません。直前の同期内容を維持し、次回取得をやり直します。
+
+## Googleの変更通知
+
+- 本番は `GOOGLE_CALENDAR_WEBHOOK_ENABLED="true"` を設定します。`SITE_URL` は本番HTTPSオリジンです。追加の手動Secret設定は不要です。
+- Cronと管理者の手動同期が `events.watch` を登録します。通知先は `https://yomon-harikyu.com/api/google-calendar/webhook`。Googleが通知するのは変更の発生だけなので、通知後に既存の取り込み処理で予定を読み直します。追加・変更・削除が対象です。
+- 通知は完全な即時性や配送を保証しません。5分ごとの取り込みを残し、通知漏れ・通信障害・処理中の中断を補います。大量の予定や障害時は複数回の同期が必要です。開いたままのカレンダー画面の表示更新は従来の画面操作に従います。
+- 通知チャンネルは7日を要求し、Googleが返した期限の24時間前から新しいチャンネルを登録します。旧チャンネルは期限まで有効にして更新失敗時の空白を避け、期限後にDBから削除します。登録失敗は1時間後から再試行します。
+- ランダムな通知トークンのハッシュ、チャンネルID、対象リソースID、有効期限を検証します。登録応答より先に届く初回 `sync` 通知にも対応しています。トークン・リソースIDは管理者の状態APIにも返しません。
+- 通知番号で重複・順序逆転を抑止し、DBの世代番号で同期中の変更を記録します。処理時間に余裕がある場合は一度追加取得し、残りは次回通知やCronで補います。予約DBの二重登録やLINE通知を起こしません。
+- `robots.txt` は通知先だけを `/api/` の拒否から除外します。CloudflareでGoogleからのPOSTが拒否される場合はSecurity Eventsで該当パスのルールを確認してください。予約API全体の保護を解除する必要はありません。
+- 公開後は管理者の手動同期を実行し、`watch.active` がtrue、`lastNotificationAt` が更新されることを確認します。初回通知の到着は接続確認であり、実際の予定変更の反映確認とは区別します。
 
 ## 障害・重複・再送
 
@@ -51,8 +62,8 @@ GoogleのイベントIDは予約の種類とIDから毎回同じ値を作りま�
 
 管理者認証が必要なAPI:
 
-- `GET /api/admin/calendar-sync`: 書き出しの `configured`, `pending`, `synced`, `failed` と、取り込みの `import`（`syncedAt`, `error`, `inProgress`, `count`）。予定名・患者情報・秘密鍵は返しません。
-- `POST /api/admin/calendar-sync`: 書き出しとGoogle取り込みのバックグラウンド処理を要求（202）。設定不足は503。書き出しの再送間隔を無視する操作ではありません。
+- `GET /api/admin/calendar-sync`: 書き出しの `configured`, `pending`, `synced`, `failed` と、取り込みの `import`（`syncedAt`, `error`, `inProgress`, `count`）、通知の `watch`（`enabled`, `active`, `expiresAt`, `lastNotificationAt`, `error`）。予定名・患者情報・秘密鍵は返しません。
+- `POST /api/admin/calendar-sync`: 書き出し・Google取り込み・通知設定の登録/期限更新を要求（202）。設定不足は503。書き出しの再送間隔を無視する操作ではありません。
 
 `synced` は最後にGoogle APIへの反映に成功したキュー項目数で、削除完了項目も含みます。スマホやTimeTreeでの表示完了を保証する値ではありません。`configured` は設定値の有無であり、共有権限や秘密鍵の正しさは最初の同期で確認されます。
 
@@ -62,7 +73,7 @@ Googleからのエラー本文や資格情報は保存せず、HTTPステータ�
 
 ## ローカル確認
 
-`npm run db:migrate:local` を実行し、`.dev.vars` にはテスト用カレンダーとテスト用のJSONのみ設定します。公開用のJSON・カレンダーを設定すると実際の患者予定へ書き込むため、通常の自動テストではGoogleとLINEの通信を代替処理にしています。
+`npm run db:migrate:local` を実行し、`.dev.vars` には `GOOGLE_CALENDAR_WEBHOOK_ENABLED="false"` を設定して本番通知先へのチャンネル登録を防ぎます。`.dev.vars` にはテスト用カレンダーとテスト用のJSONのみ設定します。公開用のJSON・カレンダーを設定すると実際の患者予定へ書き込むため、通常の自動テストではGoogleとLINEの通信を代替処理にしています。
 
 ## 公式仕様
 
@@ -72,3 +83,6 @@ Googleからのエラー本文や資格情報は保存せず、HTTPステータ�
 - https://developers.google.com/workspace/calendar/api/v3/reference/events/update
 - https://developers.google.com/workspace/calendar/api/v3/reference/events/delete
 - https://developers.google.com/workspace/calendar/api/v3/reference/events/list
+
+- https://developers.google.com/workspace/calendar/api/guides/push
+- https://developers.google.com/workspace/calendar/api/v3/reference/events/watch

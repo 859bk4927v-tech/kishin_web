@@ -330,7 +330,7 @@ test('status and manual retries require admin authentication and reveal no patie
   }
   const response = await worker.fetch(new Request('https://example.test/api/admin/calendar-sync',{headers:{Authorization:'Bearer test-only-admin'}}),env,{});
   const data = await response.json();
-  assert.deepEqual(data,{configured:true,pending:1,synced:0,failed:0,import:{syncedAt:'',error:'',inProgress:false,count:0}});
+  assert.deepEqual(data,{configured:true,pending:1,synced:0,failed:0,import:{syncedAt:'',error:'',inProgress:false,count:0},watch:{enabled:false,active:false,expiresAt:'',lastNotificationAt:'',error:''}});
   assert.equal(response.headers.get('Cache-Control'),'no-store');
   const missing = await worker.fetch(new Request('https://example.test/api/admin/calendar-sync',{method:'POST',headers:{Authorization:'Bearer test-only-admin'}}),{...env,GOOGLE_CALENDAR_ID:''},{});
   assert.equal(missing.status,503);

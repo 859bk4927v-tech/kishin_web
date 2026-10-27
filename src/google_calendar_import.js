@@ -24,7 +24,18 @@ export class GoogleCalendarImport {
 
   static async run(env) {
     if (!GoogleCalendarSync.configured(env)) return {status:'not_configured'};
-    try { return await this.importPages(env); }
+    try {
+      const started = Date.now();
+      for (let attempt=0; attempt<2; attempt++) {
+        const result = await this.importPages(env);
+        if (result.status !== 'complete' || attempt === 1 || Date.now()-started>5000) return result;
+        const state = await env.BOOKING_DB.prepare(`SELECT requested_revision,completed_revision
+          FROM google_calendar_import WHERE calendar_id=?`).bind(env.GOOGLE_CALENDAR_ID.trim()).first();
+        if (state.requested_revision === state.completed_revision) return result;
+        // A notification arrived while reading Google. Recheck once promptly;
+        // remaining changes still reconcile through the five-minute cron.
+      }
+    }
     catch { return {status:'failed'}; }
   }
 
@@ -46,7 +57,7 @@ export class GoogleCalendarImport {
         await db.batch([
           db.prepare(`DELETE FROM google_calendar_import_stage WHERE calendar_id=? AND
             EXISTS(SELECT 1 FROM google_calendar_import WHERE calendar_id=? AND lease_token=?)`).bind(calendar,calendar,lease),
-          db.prepare(`UPDATE google_calendar_import SET run_id=?,page_token='',window_start=?,window_end=?,started_at=?
+          db.prepare(`UPDATE google_calendar_import SET run_id=?,page_token='',window_start=?,window_end=?,started_at=?,run_revision=requested_revision
             WHERE calendar_id=? AND lease_token=?`).bind(state.run_id,state.window_start,state.window_end,now,calendar,lease)
         ]);
       }
@@ -85,7 +96,7 @@ export class GoogleCalendarImport {
             db.prepare(`INSERT INTO google_calendar_busy(calendar_id,event_id,start_at,end_at,title)
               SELECT calendar_id,event_id,start_at,end_at,title FROM google_calendar_import_stage WHERE calendar_id=? AND run_id=? AND ${guard}`)
               .bind(calendar,state.run_id,calendar,lease,state.run_id),
-            db.prepare(`UPDATE google_calendar_import SET run_id='',page_token='',synced_at=?,last_error='',lease_token='',lease_until=0
+            db.prepare(`UPDATE google_calendar_import SET run_id='',page_token='',synced_at=?,last_error='',lease_token='',lease_until=0,completed_revision=run_revision
               WHERE calendar_id=? AND lease_token=? AND run_id=?`).bind(new Date().toISOString(),calendar,lease,state.run_id)
           ]);
           if ((published[2]?.meta?.changes ?? published[2]?.changes) !== 1) return {status:'superseded'};

@@ -10,3 +10,6 @@ LINE_MINIAPP_CHANNEL_ID=2011966875
 GOOGLE_CALENDAR_ID=
 # Set the complete downloaded service-account JSON as a single-line JSON string.
 GOOGLE_SERVICE_ACCOUNT_JSON=
+
+# ローカルでは本番への変更通知チャンネルを登録しない
+GOOGLE_CALENDAR_WEBHOOK_ENABLED="false"
